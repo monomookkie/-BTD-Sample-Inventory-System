@@ -1,0 +1,62 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- White background with rounded corners -->
+  <rect width="200" height="200" rx="40" ry="40" fill="white"/>
+  
+  <!-- Outer circle arc (top dark blue) -->
+  <path d="M 60 50 A 65 65 0 0 1 140 50" stroke="#001E3C" stroke-width="16" fill="none" stroke-linecap="round"/>
+  
+  <!-- Outer circle arc (right red) -->
+  <path d="M 140 50 A 65 65 0 0 1 140 150" stroke="#C0203B" stroke-width="16" fill="none" stroke-linecap="round"/>
+  
+  <!-- Outer circle arc (bottom dark blue) -->
+  <path d="M 140 150 A 65 65 0 0 1 60 150" stroke="#001E3C" stroke-width="16" fill="none" stroke-linecap="round"/>
+  
+  <!-- Outer circle arc (left dark blue) -->
+  <path d="M 60 150 A 65 65 0 0 1 60 50" stroke="#001E3C" stroke-width="16" fill="none" stroke-linecap="round"/>
+  
+  <!-- Blood tube (left side) -->
+  <g>
+    <!-- Tube body with white fill and dark blue stroke -->
+    <rect x="40" y="65" width="38" height="75" rx="10" fill="white" stroke="#001E3C" stroke-width="5"/>
+    
+    <!-- Cap (dark blue) -->
+    <rect x="40" y="55" width="38" height="12" rx="4" fill="#001E3C"/>
+    
+    <!-- Cap lines -->
+    <line x1="50" y1="55" x2="50" y2="67" stroke="#0D3B7F" stroke-width="2"/>
+    <line x1="60" y1="55" x2="60" y2="67" stroke="#0D3B7F" stroke-width="2"/>
+    <line x1="70" y1="55" x2="70" y2="67" stroke="#0D3B7F" stroke-width="2"/>
+    
+    <!-- Blood fill (red) -->
+    <rect x="44" y="100" width="30" height="40" rx="3" fill="#C0203B"/>
+  </g>
+  
+  <!-- Box (right side) -->
+  <g>
+    <!-- Box body with white fill and dark blue stroke -->
+    <rect x="95" y="75" width="55" height="55" rx="5" fill="white" stroke="#001E3C" stroke-width="5"/>
+    
+    <!-- Top flap (pyramid shape) -->
+    <polygon points="95,75 122.5,50 150,75" fill="white" stroke="#001E3C" stroke-width="5"/>
+    
+    <!-- Handle on top -->
+    <rect x="118" y="60" width="9" height="18" rx="3" fill="white" stroke="#001E3C" stroke-width="3"/>
+    
+    <!-- Lines on box (red) -->
+    <line x1="108" y1="95" x2="132" y2="95" stroke="#C0203B" stroke-width="4" stroke-linecap="round"/>
+    <line x1="108" y1="108" x2="132" y2="108" stroke="#C0203B" stroke-width="4" stroke-linecap="round"/>
+    <line x1="108" y1="121" x2="132" y2="121" stroke="#C0203B" stroke-width="4" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Bottom right barcode circle (red) -->
+  <g>
+    <!-- Circle background -->
+    <circle cx="145" cy="155" r="25" fill="#C0203B"/>
+    
+    <!-- Barcode lines (white) -->
+    <line x1="135" y1="140" x2="135" y2="170" stroke="white" stroke-width="2" stroke-linecap="round"/>
+    <line x1="141" y1="140" x2="141" y2="170" stroke="white" stroke-width="2" stroke-linecap="round"/>
+    <line x1="147" y1="140" x2="147" y2="170" stroke="white" stroke-width="2" stroke-linecap="round"/>
+    <line x1="153" y1="140" x2="153" y2="170" stroke="white" stroke-width="2" stroke-linecap="round"/>
+  </g>
+</svg>
