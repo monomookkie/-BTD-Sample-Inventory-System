@@ -176,12 +176,12 @@ function remoteSync(action, payload) {
  *  actually succeeded, rather than optimistically assuming success. */
 async function remoteAction(action, payload) {
   if (!REMOTE_CONFIGURED) return null;
-  try {
-    const res = await fetch(WEB_APP_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action, payload, ts: new Date().toISOString() }),
-    });
+
+  const res = await fetch('/api-proxy-sheets', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ action, payload, ts: new Date().toISOString() }),
+});
     const data = await res.json();
     lastRemoteError = data.error || null;
     return data;
@@ -199,11 +199,11 @@ async function remoteAction(action, payload) {
 async function remoteFetchAll() {
   if (!REMOTE_CONFIGURED) return false;
   try {
-    const res = await fetch(WEB_APP_URL, { 
-      method: 'POST', 
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action: 'getAll', payload: {}, ts: new Date().toISOString() })
-    });
+   const res = await fetch('/api-proxy-sheets', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ action, payload, ts: new Date().toISOString() }),
+});
 
     const data = await res.json();
     
