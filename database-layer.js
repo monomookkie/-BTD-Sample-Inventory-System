@@ -202,9 +202,8 @@ async function remoteFetchAll() {
    const res = await fetch('/api/proxy-sheets', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ action, payload, ts: new Date().toISOString() }),
-});
-
+ body: JSON.stringify({ action: 'getAll', payload: {}, ts: new Date().toISOString() }),
+   });
     const data = await res.json();
     
     if (data.error) {
