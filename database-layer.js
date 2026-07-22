@@ -177,7 +177,7 @@ function remoteSync(action, payload) {
 async function remoteAction(action, payload) {
   if (!REMOTE_CONFIGURED) return null;
 try {
-  const res = await fetch('/api-proxy-sheets', {
+  const res = await fetch('/api/proxy-sheets', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ action, payload, ts: new Date().toISOString() }),
@@ -199,7 +199,7 @@ try {
 async function remoteFetchAll() {
   if (!REMOTE_CONFIGURED) return false;
   try {
-   const res = await fetch('/api-proxy-sheets', {
+   const res = await fetch('/api/proxy-sheets', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ action, payload, ts: new Date().toISOString() }),
