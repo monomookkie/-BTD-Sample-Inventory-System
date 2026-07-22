@@ -159,13 +159,13 @@ let lastRemoteError = null;
  *  but never thrown, because a database hiccup must never break the app for the person using it. */
 function remoteSync(action, payload) {
   if (!REMOTE_CONFIGURED) return; // not configured, skip silently
-  fetch(WEB_APP_URL, {
+  fetch('/api/proxy-sheets', {
     method: 'POST',
     // Apps Script web apps deployed with "Anyone" access already send back
     // Access-Control-Allow-Origin, so a normal 'cors' request (the default) works fine here —
     // no need for 'no-cors'. Using 'no-cors' would make the response opaque/unreadable, which
     // is fine for fire-and-forget writes but breaks anything that needs to read a real answer.
-    headers: { 'Content-Type': 'text/plain' },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action, payload, ts: new Date().toISOString() }),
   }).catch(err => console.warn('Remote sync failed (non-blocking):', err));
 }
