@@ -176,7 +176,7 @@ function remoteSync(action, payload) {
  *  actually succeeded, rather than optimistically assuming success. */
 async function remoteAction(action, payload) {
   if (!REMOTE_CONFIGURED) return null;
-
+try {
   const res = await fetch('/api-proxy-sheets', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
@@ -185,7 +185,7 @@ async function remoteAction(action, payload) {
     const data = await res.json();
     lastRemoteError = data.error || null;
     return data;
-  } catch (err) {
+} catch (err) {
     lastRemoteError = (err && err.message) ? err.message : String(err);
     console.warn('Remote action failed:', err);
     return null;
