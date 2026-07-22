@@ -69,7 +69,7 @@
 //   3. Copy the generated Web App URL and paste it below.
 // Leaving this as the placeholder value means the app runs on localStorage
 // only — fully functional, just not synced across devices/browsers.
-const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwO2WUPHHEJIZV9KKQ7a9q8xYXBKoXkBv-x59JR5Iqisnnfb0REgQxrI_RyKJi2b0BE/exec';
+const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyMT2UzujjYdnD3Yl6hDyjQdncdhThLfHkS4UTgLijWBQBhNXUDHa4hR9VUJud_74jG/exec';
 
 const REMOTE_CONFIGURED = WEB_APP_URL && WEB_APP_URL !== 'YOUR_APPS_SCRIPT_URL';
 
