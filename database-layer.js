@@ -338,7 +338,7 @@ const DB = {
   },
 
   updateUserRole(id, role, remotePayload) {
-    _cache.users = _cache.users.map(u => u.id === id ? { ...u, role } : u);
+    _cache.users = _cache.users.map(String(u.id) === String(id) ? { ...u, role } : u);
     localWrite(STORAGE_KEYS.users, _cache.users);
     remoteSync("updateUserRole", remotePayload);
   },
