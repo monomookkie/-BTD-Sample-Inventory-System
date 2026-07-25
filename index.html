@@ -927,7 +927,7 @@ function doSignup(){
 function doLogin(){
   const email=(document.getElementById("login-email").value||"").trim().toLowerCase();
   const pw=document.getElementById("login-pw").value||"";
-  const user=USERS.find(x=>x.email===email&&x.password===pw);
+  const user=USERS.find(x=>x.email===email&&String(x.password)===String(pw));
   const errEl=document.getElementById("login-err");
   if(!user){errEl.style.display="flex";document.getElementById("login-err-msg").textContent=t("invalidLogin");return;}
   errEl.style.display="none";cu=user;sl(SK.cu,cu);
@@ -943,11 +943,11 @@ function doLogin(){
 function doPromoteToAdmin(){
   const email=(document.getElementById("na-email").value||"").trim().toLowerCase();
   const pw=document.getElementById("na-pw").value||"";
-  const user=USERS.find(x=>x.email===email&&x.password===pw);
+  const user=USERS.find(x=>x.email===email&&String(x.password)===String(pw));
   const errEl=document.getElementById("na-err");
   if(!user){errEl.style.display="flex";document.getElementById("na-err-msg").textContent=t("invalidLogin");return;}
   errEl.style.display="none";
-  USERS=USERS.map(u=>u.id===user.id?{...u,role:"admin"}:u);
+ USERS=USERS.map(u=>String(u.id)===String(user.id)?{...u,role:"admin"}:u);
   sl(SK.users,USERS);
   sendToSheets("updateUserRole",{email:user.email,role:"admin"});
   cu={...user,role:"admin"};sl(SK.cu,cu);
