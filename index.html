@@ -890,7 +890,7 @@ function doFirstAdminSetup(){
   const adminUser={id:"u_"+Date.now(),email,password:pw,role:"admin",name};
   USERS=[adminUser];
   sl(SK.users,USERS);
-  sendToSheets("registerUser",{email,name,role:"admin",password:pw});
+sendToSheets("registerUser",{id:adminUser.id,email,name,role:"admin",password:pw});
   cu=adminUser;sl(SK.cu,cu);
   // Verify the save actually stuck — re-read it back from localStorage rather than trusting sl() blindly.
   const verifyOk=ls(SK.users,[]).length>0;
@@ -919,7 +919,7 @@ function doSignup(){
   const newUser={id:"u_"+Date.now(),email,password:pw,role:"user",name};
   USERS=[...USERS,newUser];
   sl(SK.users,USERS);
-  sendToSheets("registerUser",{email,name,role:"user",password:pw}); // sync to Google Sheets 
+  sendToSheets("registerUser",{id:newUser.id,email,name,role:"user",password:pw}); // sync to Google Sheets 
   okEl.style.display="flex";document.getElementById("su-ok-msg").textContent=t("signupOk");
   document.getElementById("su-name").value="";document.getElementById("su-email").value="";document.getElementById("su-pw").value="";
 }
@@ -949,7 +949,7 @@ function doPromoteToAdmin(){
   errEl.style.display="none";
  USERS=USERS.map(u=>String(u.id)===String(user.id)?{...u,role:"admin"}:u);
   sl(SK.users,USERS);
-  sendToSheets("updateUserRole",{email:user.email,role:"admin"});
+ sendToSheets("updateUserRole",{id:user.id,email:user.email,role:"admin"});
   cu={...user,role:"admin"};sl(SK.cu,cu);
   document.getElementById("auth-screen").classList.remove("visible");
   document.getElementById("app").style.display="flex";
@@ -1882,7 +1882,7 @@ function confirmDeleteUser(id){
   const u=USERS.find(x=>x.id===id);if(!u)return;
   USERS=USERS.filter(x=>x.id!==id);
   sl(SK.users,USERS);
-  sendToSheets("deleteUser",{email:u.email});
+  sendToSheets("deleteUser",{id:u.id});
   closeModal();showToast(t("userDeleted"));refreshView();
 }
 
