@@ -1826,12 +1826,12 @@ function openChangeRole(id){
 }
 function saveRoleChange(id){
   const role=document.getElementById("ur-role").value;
-  USERS=USERS.map(u=>u.id===id?{...u,role}:u);
+ USERS=USERS.map(u=>String(u.id)===String(id)?{...u,role}:u);
   sl(SK.users,USERS);
-  const u=USERS.find(x=>x.id===id);
-  sendToSheets("updateUserRole",{email:u.email,role});
-  if(cu&&cu.id===id){cu={...cu,role};sl(SK.cu,cu);}
-  closeModal();showToast(t("roleUpdated"));refreshView();initApp();
+  const u=USERS.find(x=>String(x.id)===String(id));
+ sendToSheets("updateUserRole",{id:u.id,email:u.email,role});
+ if(cu&&String(cu.id)===String(id)){cu={...cu,role};sl(SK.cu,cu);}
+closeModal();showToast(t("roleUpdated"));refreshView();initApp();
 }
 /** Admin-initiated password reset: sets a new password directly for the user (no email flow
  *  required). A random default is pre-filled so the admin can just hand it to the person, but
