@@ -924,13 +924,18 @@ function doSignup(){
   document.getElementById("su-name").value="";document.getElementById("su-email").value="";document.getElementById("su-pw").value="";
 }
 
-function doLogin(){
+async function doLogin(){
   const email=(document.getElementById("login-email").value||"").trim().toLowerCase();
   const pw=document.getElementById("login-pw").value||"";
-  const user=USERS.find(x=>x.email===email&&String(x.password)===String(pw));
   const errEl=document.getElementById("login-err");
-  if(!user){errEl.style.display="flex";document.getElementById("login-err-msg").textContent=t("invalidLogin");return;}
-  errEl.style.display="none";cu=user;sl(SK.cu,cu);
+  const result = await remoteAction("login", { email, password: pw });
+  if (!result || result.error || !result.user) {
+    errEl.style.display="flex";
+    document.getElementById("login-err-msg").textContent=t("invalidLogin");
+    return;
+  }
+  errEl.style.display="none";
+  cu=result.user; sl(SK.cu,cu);
   document.getElementById("auth-screen").classList.remove("visible");
   document.getElementById("app").style.display="flex";
   initApp();
@@ -940,16 +945,19 @@ function doLogin(){
  *  Requires the correct password for an EXISTING account — this isn't a way for anyone
  *  to grant themselves admin, only a way for someone who already owns a valid login to
  *  be promoted, since otherwise nobody could ever recover from this state. */
-function doPromoteToAdmin(){
+async function doPromoteToAdmin(){
   const email=(document.getElementById("na-email").value||"").trim().toLowerCase();
   const pw=document.getElementById("na-pw").value||"";
-  const user=USERS.find(x=>x.email===email&&String(x.password)===String(pw));
   const errEl=document.getElementById("na-err");
-  if(!user){errEl.style.display="flex";document.getElementById("na-err-msg").textContent=t("invalidLogin");return;}
+  const result = await remoteAction("login", {email, password:pw});
+  if(!result || result.error || !result.user){
+    errEl.style.display="flex";document.getElementById("na-err-msg").textContent=t("invalidLogin");return;
+  }
+  const user = result.user;
   errEl.style.display="none";
- USERS=USERS.map(u=>String(u.id)===String(user.id)?{...u,role:"admin"}:u);
+  USERS=USERS.map(u=>String(u.id)===String(user.id)?{...u,role:"admin"}:u);
   sl(SK.users,USERS);
- sendToSheets("updateUserRole",{id:user.id,email:user.email,role:"admin"});
+  sendToSheets("updateUserRole",{id:user.id,email:user.email,role:"admin"});
   cu={...user,role:"admin"};sl(SK.cu,cu);
   document.getElementById("auth-screen").classList.remove("visible");
   document.getElementById("app").style.display="flex";
