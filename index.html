@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <link rel="icon" type="image/svg+xml" href="logo.svg" />
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script>
 /* JsBarcode v3.11.5 — embedded inline so the app works fully offline / behind restrictive firewalls (no external CDN dependency) */
 /*! JsBarcode v3.11.5 | (c) Johan Lindell | MIT license */
@@ -521,8 +522,15 @@ td{padding:10px 15px;vertical-align:middle;color:#334155}
           <select class="filter-select" id="r-type" onchange="renderReport()" style="min-width:160px">
             <option value="all">All Types</option>
           </select>
+          <label style="font-size:12px;color:#64748B;display:flex;align-items:center;gap:6px">
+            Discard Date (Actual):
+            <input type="date" class="form-input" id="r-actual-from" style="padding:6px 8px;font-size:13px"/>
+            <span>–</span>
+            <input type="date" class="form-input" id="r-actual-to" style="padding:6px 8px;font-size:13px"/>
+          </label>
           <div style="flex:1"></div>
           <button class="btn-ghost" onclick="exportReport('excel')">📗 <span id="btn-export-excel">Export to Excel</span></button>
+          <button class="btn-ghost" onclick="exportReportWord()">📄 <span id="btn-export-word">Export to Word</span></button>
         </div>
         <div class="card-title" id="report-title" style="margin-bottom:10px">Add New Sample Batch — History Log</div>
         <div style="font-size:12px;color:#475569;margin-bottom:10px" id="report-hint">💡 Click a row to see each Rack ID with its theoretical vs. actual discard date.</div>
@@ -608,6 +616,7 @@ const TYPES=[
   {id:"cpda",   label:"CPDA/CPDA1", color:"#F59E0B"},
   {id:"other",  label:"Other (specify)", color:"#64748B"},
 ];
+const OTHER_TYPE_PRESETS=["Repeat sample/NAT Reactive","RhNegative/RhDel","Research"];
 const ALL_FIELDS=["batchId","sampleType","collectionDate","expiryDate","racks","staff","discardVerifier","storageLocation","boxName","tubeCount","typeDetail"];
 // No demo accounts — the very first time this app runs, the person who opens it
 // is guided through a one-time "Create Admin Account" screen (see setupFirstAdmin()).
@@ -1170,9 +1179,14 @@ function buildCreateForm(data){
     </div>
     <div class="form-field"><label class="form-label">${t("tubeCount")} <span style="color:#64748B;font-weight:400">(${"optional"})</span></label><input class="form-input" type="number" id="cf-tubes" min="0" value="${data.tubeCount||""}" placeholder="${"Number of tubes (if applicable)"}"/></div>
     <div class="form-field"><label class="form-label">${t("sampleType")}</label><select class="form-select" id="cf-type" onchange="refreshBatchPreview()">${typeOpts}</select></div>
-    <div class="form-field" id="cf-other-wrap" style="grid-column:1/-1;display:${isOther?"block":"none"}">
+   <div class="form-field" id="cf-other-wrap" style="grid-column:1/-1;display:${isOther?"block":"none"}">
       <label class="form-label">${t("specifyType")} <span style="color:#EF4444">*</span></label>
-      <input class="form-input" id="cf-other-name" value="${esc(data.customTypeName||"")}" placeholder="${"Enter the sample type name"}"/>
+      <select class="form-select" id="cf-other-preset" onchange="onOtherPresetChange('cf')" style="margin-bottom:6px">
+        <option value="">${"— เลือกจากรายการ หรือพิมพ์เองด้านล่าง —"}</option>
+        ${OTHER_TYPE_PRESETS.map(p=>`<option value="${esc(p)}" ${data.customTypeName===p?"selected":""}>${esc(p)}</option>`).join("")}
+        <option value="__custom__" ${data.customTypeName&&!OTHER_TYPE_PRESETS.includes(data.customTypeName)?"selected":""}>${"อื่นๆ (พิมพ์เอง)"}</option>
+      </select>
+      <input class="form-input" id="cf-other-name" value="${esc(data.customTypeName||"")}" placeholder="${"Enter the sample type name"}" ${data.customTypeName&&OTHER_TYPE_PRESETS.includes(data.customTypeName)?"readonly":""}/>
     </div>
     <div class="form-field" id="cf-other-days-wrap" style="grid-column:1/-1;display:${isOther?"block":"none"}">
       <label class="form-label">${t("retentionDays")} <span style="color:#EF4444">*</span></label>
@@ -1216,6 +1230,15 @@ function onCfTypeOtherToggle(){
   const wrap=document.getElementById("cf-other-wrap");if(wrap)wrap.style.display=isOther?"block":"none";
   const daysWrap=document.getElementById("cf-other-days-wrap");if(daysWrap)daysWrap.style.display=isOther?"block":"none";
   recalcCfExpiry();
+}
+/** เมื่อเลือก preset ใน dropdown ให้ดันค่าไปลงช่อง text (customTypeName) เดิม แล้วล็อกไม่ให้พิมพ์
+ *  ถ้าเลือก "อื่นๆ (พิมพ์เอง)" หรือไม่เลือกอะไร ให้ปลดล็อกช่อง text ให้พิมพ์เองได้ตามปกติ */
+function onOtherPresetChange(prefix){
+  const sel=document.getElementById(prefix+"-other-preset");
+  const inp=document.getElementById(prefix+"-other-name");
+  if(!sel||!inp)return;
+  if(sel.value&&sel.value!=="__custom__"){ inp.value=sel.value; inp.readOnly=true; }
+  else { inp.readOnly=false; if(sel.value==="__custom__"){ inp.value=""; inp.focus(); } }
 }
 function recalcCfExpiry(){
   const type=document.getElementById("cf-type")?.value;
@@ -1284,9 +1307,14 @@ function openEditSingle(id){
     <div class="form-field"><label class="form-label">${t("batchId")}</label><input class="form-input" value="${esc(s.batchId)}" readonly style="font-family:monospace"/></div>
     <div class="form-field"><label class="form-label">${t("tubeCount")} <span style="color:#64748B;font-weight:400">(${"optional"})</span></label><input class="form-input" type="number" min="0" id="ef-tubes" value="${s.tubeCount??""}" placeholder="${"Number of tubes (if applicable)"}"/></div>
     <div class="form-field"><label class="form-label">${t("sampleType")}</label><select class="form-select" id="ef-type" onchange="onEfTypeToggle()">${typeOpts}</select></div>
-    <div class="form-field" id="ef-other-wrap" style="grid-column:1/-1;display:${isOther?"block":"none"}">
+ <div class="form-field" id="ef-other-wrap" style="grid-column:1/-1;display:${isOther?"block":"none"}">
       <label class="form-label">${t("specifyType")} <span style="color:#EF4444">*</span></label>
-      <input class="form-input" id="ef-other-name" value="${esc(s.customTypeName||"")}" placeholder="${"Enter the sample type name"}"/>
+      <select class="form-select" id="ef-other-preset" onchange="onOtherPresetChange('ef')" style="margin-bottom:6px">
+        <option value="">${"— เลือกจากรายการ หรือพิมพ์เองด้านล่าง —"}</option>
+        ${OTHER_TYPE_PRESETS.map(p=>`<option value="${esc(p)}" ${s.customTypeName===p?"selected":""}>${esc(p)}</option>`).join("")}
+        <option value="__custom__" ${s.customTypeName&&!OTHER_TYPE_PRESETS.includes(s.customTypeName)?"selected":""}>${"อื่นๆ (พิมพ์เอง)"}</option>
+      </select>
+      <input class="form-input" id="ef-other-name" value="${esc(s.customTypeName||"")}" placeholder="${"Enter the sample type name"}" ${s.customTypeName&&OTHER_TYPE_PRESETS.includes(s.customTypeName)?"readonly":""}/>
     </div>
     <div class="form-field" id="ef-other-days-wrap" style="grid-column:1/-1;display:${isOther?"block":"none"}">
       <label class="form-label">${t("retentionDays")} <span style="color:#EF4444">*</span></label>
@@ -1767,6 +1795,88 @@ function exportReport(format){
   let csv="\uFEFFDate Created,Batch ID,Rack,Type,Detail,Storage Location,Box,Tube Count,Created By,Discarded By,Comment,Discard Date (Scheduled),Discard Date (Actual),Status\n";
   flatRows.forEach(r=>{csv+=`${csvField(fmtDateTime(r.createdAt))},${csvField(r.batchId)},${r.rack},${csvField(r.type)},${csvField(r.typeDetail)},${csvField(r.storageLocation)},${csvField(r.boxName)},${r.tubeCount},${csvField(r.staff)},${csvField(r.discardedBy)},${csvField(r.comment)},${csvField(r.theory)},${csvField(r.actual)},${csvField(r.status)}\n`;});
   downloadFile(csv,`sample_batch_report_${fileTag}.csv`,"text/csv;charset=utf-8");
+  /** สร้าง .docx จาก report_template.docx (ต้องวางไฟล์นี้ไว้ path เดียวกับ index.html)
+ *  ใช้ตัวกรอง month/type เดียวกับหน้า Report บวกช่วงวันที่ Discard Date (Actual) */
+async function exportReportWord(){
+  const selectedMonth=document.getElementById("r-month")?.value||"all";
+  const selectedType=document.getElementById("r-type")?.value||"all";
+  const actualFrom=document.getElementById("r-actual-from")?.value||"";
+  const actualTo=document.getElementById("r-actual-to")?.value||"";
+
+  let rows=selectedMonth==="all"?logs:logs.filter(l=>monthKey(l.createdAt)===selectedMonth);
+  if(selectedType!=="all")rows=rows.filter(l=>l.sampleType===selectedType);
+  rows=rows.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+
+  // flatten เหมือน exportReport('excel') ทุกประการ แต่เก็บ actual แบบดิบไว้ด้วยเพื่อกรองช่วงวันที่
+  const flatRows=[];
+  rows.forEach(l=>{
+    const members=samples.filter(s=>s.groupId===l.groupId).sort((a,b)=>(a.rackNumber||0)-(b.rackNumber||0));
+    const creatorName=resolveActorName(l.staffName,l.staffEmail,l.staffId);
+    if(!members.length){
+      flatRows.push({createdAt:l.createdAt,batchId:l.batchPrefix+"-*",rack:"-",type:logTypeDisplay(l),typeDetail:l.typeDetail||"-",storageLocation:l.storageLocation||"-",boxName:l.boxName||"-",tubeCount:(l.tubeCount||l.tubeCount===0)?l.tubeCount:"-",staff:creatorName,discardedBy:"-",comment:"-",theory:"-",actual:null,actualDisplay:"-",status:"-"});
+    } else {
+      members.forEach(s=>{
+        const discardedByName=s.discarded?resolveActorName(s.discardedByName,s.discardedByEmail,null):"";
+        flatRows.push({
+          createdAt:l.createdAt,batchId:s.batchId,rack:s.rackNumber||1,type:sampleTypeDisplay(s),typeDetail:s.typeDetail||"-",
+          storageLocation:s.storageLocation||"-",boxName:s.boxName||"-",tubeCount:(s.tubeCount||s.tubeCount===0)?s.tubeCount:"-",
+          staff:creatorName,discardedBy:s.discarded?(discardedByName||"-"):"-",comment:s.discardComment||"-",
+          theory:fmtDate(s.expiryDate),actual:s.discarded?s.discardedAt:null,
+          actualDisplay:s.discarded?fmtDateTime(s.discardedAt):t("notDiscarded"),status:sampleStatus(s)
+        });
+      });
+    }
+  });
+
+  // กรองตามช่วง Discard Date (Actual) — ถ้าตั้งช่วงไว้ แถวที่ยังไม่ discard จะถูกตัดออก (ไม่มีวันที่ให้เทียบ)
+  let finalRows=flatRows;
+  if(actualFrom||actualTo){
+    finalRows=finalRows.filter(r=>{
+      if(!r.actual)return false;
+      const d=r.actual.slice(0,10);
+      if(actualFrom&&d<actualFrom)return false;
+      if(actualTo&&d>actualTo)return false;
+      return true;
+    });
+  }
+  if(!finalRows.length){showToast("No data to export");return;}
+  if(typeof JSZip==="undefined"){showToast("JSZip library not loaded");return;}
+
+  const resp=await fetch("report_template.docx");
+  if(!resp.ok){showToast("Could not load report_template.docx (check it's next to index.html)");return;}
+  const zip=await JSZip.loadAsync(await resp.arrayBuffer());
+  let docXml=await zip.file("word/document.xml").async("text");
+
+  const START="<!--ROW_TEMPLATE-->",END="<!--/ROW_TEMPLATE-->";
+  const rs=docXml.indexOf(START),re=docXml.indexOf(END);
+  const rowTpl=docXml.slice(rs+START.length,re);
+  const xmlEsc=v=>String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+  const filledRows=finalRows.map(r=>{
+    let row=rowTpl;
+    const vals={
+      DATE_CREATED:fmtDateTime(r.createdAt),BATCH_ID:r.batchId,RACK:String(r.rack),TYPE:r.type,
+      DETAIL:r.typeDetail==="-"?"":r.typeDetail,STORAGE:r.storageLocation==="-"?"":r.storageLocation,
+      BOX:r.boxName==="-"?"":r.boxName,TUBES:String(r.tubeCount),CREATED_BY:r.staff,
+      DISCARDED_BY:r.discardedBy==="-"?"":r.discardedBy,COMMENT:r.comment==="-"?"":r.comment,
+      DISCARD_SCHEDULED:r.theory,DISCARD_ACTUAL:r.actualDisplay==="-"?"":r.actualDisplay,STATUS:r.status
+    };
+    Object.entries(vals).forEach(([k,v])=>{row=row.split("{{"+k+"}}").join(xmlEsc(v));});
+    return row;
+  }).join("");
+
+  docXml=docXml.slice(0,rs)+filledRows+docXml.slice(re+END.length);
+  const typeLabel=selectedType==="all"?"All Types":(TYPES.find(x=>x.id===selectedType)?.label||selectedType);
+  docXml=docXml.split("{{TYPE_LABEL}}").join(xmlEsc(typeLabel));
+
+  zip.file("word/document.xml",docXml);
+  const blob=await zip.generateAsync({type:"blob",mimeType:"application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;a.download=`sample_batch_report_${selectedMonth}${selectedType==="all"?"":"_"+selectedType}.docx`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  showToast("File exported");
+}
 }
 function downloadFile(content,filename,mime){
   const blob=new Blob([content],{type:mime});
