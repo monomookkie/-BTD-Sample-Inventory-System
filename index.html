@@ -515,12 +515,12 @@ td{padding:10px 15px;vertical-align:middle;color:#334155}
 
       <!-- Report -->
       <div class="view" id="view-report">
-        <div class="toolbar">
-          <select class="filter-select" id="r-month" onchange="renderReport()" style="min-width:160px">
-            <option value="all">All time</option>
-          </select>
-          <select class="filter-select" id="r-type" onchange="renderReport()" style="min-width:160px">
+      <div class="toolbar">
+          <select class="filter-select" id="r-type" onchange="onReportTypeChange()" style="min-width:160px">
             <option value="all">All Types</option>
+          </select>
+          <select class="filter-select" id="r-other-subtype" onchange="renderReport()" style="min-width:220px;display:none">
+            <option value="all">All (Other)</option>
           </select>
           <label style="font-size:12px;color:#64748B;display:flex;align-items:center;gap:6px">
             Discard Date (Actual):
@@ -1657,23 +1657,6 @@ function openPreviewTpl(id){
    REPORT — history log + export
    ══════════════════════════════════════ */
 const expandedReportGroups=new Set();
-/** Returns "YYYY-MM" key for a date string, used to group/filter logs by month. */
-function monthKey(dateStr){const d=new Date(dateStr);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;}
-function monthLabel(key){
-  const [y,m]=key.split("-");
-  const d=new Date(parseInt(y),parseInt(m)-1,1);
-  return d.toLocaleDateString("en-GB",{month:"long",year:"numeric"});
-}
-/** Rebuilds the month/year <select> options from whatever months exist in `logs`, keeping the current selection if still valid. */
-function populateReportMonths(){
-  const sel=document.getElementById("r-month");
-  if(!sel)return;
-  const prev=sel.value;
-  const keys=[...new Set(logs.map(l=>monthKey(l.createdAt)))].sort().reverse();
-  sel.innerHTML=`<option value="all">${"All time"}</option>`+
-    keys.map(k=>`<option value="${k}">${esc(monthLabel(k))}</option>`).join("");
-  if(keys.includes(prev))sel.value=prev;
-}
 /** Rebuilds the Sample Type <select> in the Report toolbar from whichever types actually appear in `logs`. */
 function populateReportTypes(){
   const sel=document.getElementById("r-type");
@@ -1686,14 +1669,15 @@ function populateReportTypes(){
   if(orderedTypes.some(st=>st.id===prev))sel.value=prev;
 }
 function renderReport(){
-  populateReportMonths();
   populateReportTypes();
-  const selectedMonth=document.getElementById("r-month")?.value||"all";
+  populateReportOtherSubtypes();
   const selectedType=document.getElementById("r-type")?.value||"all";
+  const selectedSubtype=document.getElementById("r-other-subtype")?.value||"all";
   document.getElementById("r-thead").innerHTML=["",t("reportDate"),t("reportBatch"),t("reportType"),t("typeDetail"),t("reportRacks"),t("reportStorage"),t("reportBox"),t("reportTubes"),t("reportUser"),t("status")].map(h=>`<th>${esc(h)}</th>`).join("");
   const tb=document.getElementById("r-tbody");
-  let filteredLogs=selectedMonth==="all"?logs:logs.filter(l=>monthKey(l.createdAt)===selectedMonth);
+  let filteredLogs=logs;
   if(selectedType!=="all")filteredLogs=filteredLogs.filter(l=>l.sampleType===selectedType);
+  if(selectedType==="other"&&selectedSubtype!=="all")filteredLogs=filteredLogs.filter(l=>l.customTypeName===selectedSubtype);
   if(!filteredLogs.length){tb.innerHTML=`<tr><td colspan="11" class="no-results">${t("noSamples")}</td></tr>`;return;}
   const sortedLogs=[...filteredLogs].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
   let html="";
@@ -1753,22 +1737,37 @@ function renderReport(){
   });
   tb.innerHTML=html;
 }
+
+function populateReportOtherSubtypes(){
+  const sel=document.getElementById("r-other-subtype");
+  if(!sel)return;
+  const prev=sel.value;
+  const names=[...new Set(logs.filter(l=>l.sampleType==="other"&&l.customTypeName).map(l=>l.customTypeName))].sort();
+  sel.innerHTML=`<option value="all">${"All (Other)"}</option>`+
+    names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("");
+  if(names.includes(prev))sel.value=prev;
+}
+
+function onReportTypeChange(){
+  const type=document.getElementById("r-type")?.value||"all";
+  const sub=document.getElementById("r-other-subtype");
+  if(sub)sub.style.display=type==="other"?"inline-block":"none";
+  renderReport();
+}
 function toggleReportGroup(gid){
   if(expandedReportGroups.has(gid))expandedReportGroups.delete(gid);else expandedReportGroups.add(gid);
   const chev=document.getElementById("rchev-"+gid);if(chev)chev.classList.toggle("open",expandedReportGroups.has(gid));
   const row=document.getElementById("rchild-"+gid);if(row)row.classList.toggle("visible",expandedReportGroups.has(gid));
 }
 function exportReport(format){
-  const selectedMonth=document.getElementById("r-month")?.value||"all";
   const selectedType=document.getElementById("r-type")?.value||"all";
-  let rows=selectedMonth==="all"?logs:logs.filter(l=>monthKey(l.createdAt)===selectedMonth);
+  const selectedSubtype=document.getElementById("r-other-subtype")?.value||"all";
+  let rows=logs;
   if(selectedType!=="all")rows=rows.filter(l=>l.sampleType===selectedType);
+  if(selectedType==="other"&&selectedSubtype!=="all")rows=rows.filter(l=>l.customTypeName===selectedSubtype);
   rows=rows.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
   if(!rows.length){showToast("No data to export");return;}
-  const monthTag=selectedMonth==="all"?"all":selectedMonth; // e.g. "2026-06" or "all"
-  const typeTag=selectedType==="all"?"":"_"+selectedType; // e.g. "_edta" or "" for all types
-  const fileTag=monthTag+typeTag;
-  // flatten to one row per rack so every Rack ID + both discard dates are visible in the export
+  const fileTag=selectedType==="all"?"all":(selectedType==="other"&&selectedSubtype!=="all"?"other_"+selectedSubtype.replace(/[^\w-]+/g,"_"):selectedType);
   const flatRows=[];
   rows.forEach(l=>{
     const members=samples.filter(s=>s.groupId===l.groupId).sort((a,b)=>(a.rackNumber||0)-(b.rackNumber||0));
@@ -1790,24 +1789,21 @@ function exportReport(format){
     }
   });
   const csvField=v=>`"${String(v).replace(/"/g,'""')}"`;
-  // UTF-8 BOM (\uFEFF) so Excel recognizes the encoding and Thai text renders correctly
-  // instead of showing as mojibake when the CSV is opened directly.
   let csv="\uFEFFDate Created,Batch ID,Rack,Type,Detail,Storage Location,Box,Tube Count,Created By,Discarded By,Comment,Discard Date (Scheduled),Discard Date (Actual),Status\n";
   flatRows.forEach(r=>{csv+=`${csvField(fmtDateTime(r.createdAt))},${csvField(r.batchId)},${r.rack},${csvField(r.type)},${csvField(r.typeDetail)},${csvField(r.storageLocation)},${csvField(r.boxName)},${r.tubeCount},${csvField(r.staff)},${csvField(r.discardedBy)},${csvField(r.comment)},${csvField(r.theory)},${csvField(r.actual)},${csvField(r.status)}\n`;});
   downloadFile(csv,`sample_batch_report_${fileTag}.csv`,"text/csv;charset=utf-8");
-  /** สร้าง .docx จาก report_template.docx (ต้องวางไฟล์นี้ไว้ path เดียวกับ index.html)
- *  ใช้ตัวกรอง month/type เดียวกับหน้า Report บวกช่วงวันที่ Discard Date (Actual) */
+}                                                                  
+
 async function exportReportWord(){
-  const selectedMonth=document.getElementById("r-month")?.value||"all";
-  const selectedType=document.getElementById("r-type")?.value||"all";
+ const selectedType=document.getElementById("r-type")?.value||"all";
+  const selectedSubtype=document.getElementById("r-other-subtype")?.value||"all";
   const actualFrom=document.getElementById("r-actual-from")?.value||"";
   const actualTo=document.getElementById("r-actual-to")?.value||"";
 
-  let rows=selectedMonth==="all"?logs:logs.filter(l=>monthKey(l.createdAt)===selectedMonth);
+  let rows=logs;
   if(selectedType!=="all")rows=rows.filter(l=>l.sampleType===selectedType);
+  if(selectedType==="other"&&selectedSubtype!=="all")rows=rows.filter(l=>l.customTypeName===selectedSubtype);
   rows=rows.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
-
-  // flatten เหมือน exportReport('excel') ทุกประการ แต่เก็บ actual แบบดิบไว้ด้วยเพื่อกรองช่วงวันที่
   const flatRows=[];
   rows.forEach(l=>{
     const members=samples.filter(s=>s.groupId===l.groupId).sort((a,b)=>(a.rackNumber||0)-(b.rackNumber||0));
@@ -1828,7 +1824,6 @@ async function exportReportWord(){
     }
   });
 
-  // กรองตามช่วง Discard Date (Actual) — ถ้าตั้งช่วงไว้ แถวที่ยังไม่ discard จะถูกตัดออก (ไม่มีวันที่ให้เทียบ)
   let finalRows=flatRows;
   if(actualFrom||actualTo){
     finalRows=finalRows.filter(r=>{
@@ -1864,19 +1859,19 @@ async function exportReportWord(){
     Object.entries(vals).forEach(([k,v])=>{row=row.split("{{"+k+"}}").join(xmlEsc(v));});
     return row;
   }).join("");
-
   docXml=docXml.slice(0,rs)+filledRows+docXml.slice(re+END.length);
-  const typeLabel=selectedType==="all"?"All Types":(TYPES.find(x=>x.id===selectedType)?.label||selectedType);
+  const typeLabel=selectedType==="all"?"All Types":
+    (selectedType==="other"&&selectedSubtype!=="all"?selectedSubtype:(TYPES.find(x=>x.id===selectedType)?.label||selectedType));
   docXml=docXml.split("{{TYPE_LABEL}}").join(xmlEsc(typeLabel));
 
   zip.file("word/document.xml",docXml);
   const blob=await zip.generateAsync({type:"blob",mimeType:"application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
   const url=URL.createObjectURL(blob);
   const a=document.createElement("a");
-  a.href=url;a.download=`sample_batch_report_${selectedMonth}${selectedType==="all"?"":"_"+selectedType}.docx`;
+  a.href=url;
+ a.download=`sample_batch_report_${selectedType==="all"?"all":selectedType}${selectedType==="other"&&selectedSubtype!=="all"?"_"+selectedSubtype.replace(/[^\w-]+/g,"_"):""}.docx`;
   document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
   showToast("File exported");
-}
 }
 function downloadFile(content,filename,mime){
   const blob=new Blob([content],{type:mime});
