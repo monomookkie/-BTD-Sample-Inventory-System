@@ -234,7 +234,7 @@ td{padding:10px 15px;vertical-align:middle;color:#334155}
 .toast-inner{display:flex;align-items:center;gap:9px;background:#FFFFFF;border:1px solid #A7F3D0;color:#059669;padding:11px 17px;border-radius:9px;font-size:15px;font-weight:600;box-shadow:0 8px 24px rgba(15,23,42,.12)}
 
 /* ══ A4 LABEL ══ */
-.a4-label{width:210mm;min-height:297mm;background:#fff;display:flex;align-items:center;justify-content:center;padding:30mm 25mm}
+.a4-label{width:var(--pg-w,210mm);min-height:var(--pg-h,297mm);background:#fff;display:flex;align-items:center;justify-content:center;padding:var(--pg-pad,30mm 25mm)}
 .a4-card{width:100%;max-width:140mm;border:3px solid #CBD5E1;border-radius:6px;overflow:hidden;font-family:'Inter',Arial,sans-serif}
 .a4-cap{height:8mm;width:100%}
 .a4-inner{padding:8mm 12mm 10mm}
@@ -271,7 +271,13 @@ td{padding:10px 15px;vertical-align:middle;color:#334155}
 }
 @page{size:A4;margin:0}
 #print-root{display:none}
-.print-label-page{width:210mm;height:297mm;overflow:hidden;page-break-after:always;page-break-inside:avoid}
+.print-label-page{width:var(--pg-w,210mm);height:var(--pg-h,297mm);overflow:hidden;page-break-after:always;page-break-inside:avoid}
+/* ══ COMPACT LABEL — small thermal stock (58×40mm and below) ══ */
+.lbl-compact-page{width:var(--pg-w);height:var(--pg-h);overflow:hidden;page-break-after:always;page-break-inside:avoid;display:flex;align-items:center;justify-content:center}
+.lbl-compact-card{width:100%;height:100%;border:.3mm solid #000;box-sizing:border-box;padding:1.5mm;display:flex;flex-direction:column;justify-content:space-between;font-family:Arial,sans-serif;overflow:hidden}
+.lbl-compact-batch{font-family:'Courier New',monospace;font-weight:700;font-size:8pt;text-align:center;line-height:1.1}
+.lbl-compact-barcode{width:100%}
+.lbl-compact-field{font-size:6pt;color:#000;text-align:center;line-height:1.2}
 .print-label-page:last-child{page-break-after:auto}
 
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
@@ -796,7 +802,20 @@ function renderBarcodes(root){
     }catch(e){console.warn("Barcode render failed for",value,e);}
   });
 }
+/** Injects a dynamic @page rule + CSS variables matching the chosen template's paper size,
+ *  right before printing. @page size can't be set inline/via JS on the rule itself, so this
+ *  swaps out a <style> tag's content instead — the standard workaround for print-size-per-job. */
+function applyPrintPageSize(widthMm,heightMm){
+  let styleTag=document.getElementById("dynamic-page-size");
+  if(!styleTag){styleTag=document.createElement("style");styleTag.id="dynamic-page-size";document.head.appendChild(styleTag);}
+  styleTag.textContent=`@page{size:${widthMm}mm ${heightMm}mm;margin:0}
+    :root{--pg-w:${widthMm}mm;--pg-h:${heightMm}mm}`;
+}
+  
+  
 function labelHTML(s,tpl,forPrint){
+  const paper=PAPER_SIZES.find(p=>p.id===tpl.paperSize)||PAPER_SIZES[0];
+  if(paper.kind==="compact")return labelCompactHTML(s,tpl,forPrint);
   const st=TYPES.find(x=>x.id===s.sampleType)||TYPES[0];
   const f=tpl.fields;const dl=daysLeft(s.expiryDate);const expClass=dl<=1?"expiry-warn":"expiry-ok";
   const card=`<div class="a4-card" style="border-color:${st.color}">
@@ -830,6 +849,17 @@ function labelHTML(s,tpl,forPrint){
     </div>
   </div>`;
   return forPrint?`<div class="a4-label">${card}</div>`:card;
+}
+  /** Stripped-down label for thermal stock too small for the full design (58×40mm and below):
+ *  batch ID + barcode + discard date only. Add more fields here only if the physical label is
+ *  actually big enough — this is not the place to cram the full field list back in. */
+function labelCompactHTML(s,tpl,forPrint){
+  const card=`<div class="lbl-compact-card">
+    <div class="lbl-compact-batch">${esc(s.batchId)}</div>
+    <div class="lbl-compact-barcode">${barcodeHTML(s.batchId,40,10)}</div>
+    ${tpl.fields.includes("expiryDate")?`<div class="lbl-compact-field">Discard: ${fmtDate(s.expiryDate)}</div>`:""}
+  </div>`;
+  return forPrint?`<div class="lbl-compact-page">${card}</div>`:card;
 }
 function badge(st,s){
   const labels={active:t("active"),warning:t("warning"),expired:t("expired"),discarded:t("discarded")};
@@ -1576,8 +1606,10 @@ function doPrintSingle(id){
   const s=samples.find(x=>x.id===id);if(!s||!tpl)return;buildPrintAndFire([s],tpl);
 }
 function buildPrintAndFire(list,tpl){
+  const paper=PAPER_SIZES.find(p=>p.id===tpl.paperSize)||PAPER_SIZES[0];
+  applyPrintPageSize(paper.w,paper.h);
   const pr=document.getElementById("print-root");
-  pr.innerHTML=list.map(s=>`<div class="print-label-page">${labelHTML(s,tpl,true)}</div>`).join("");
+  pr.innerHTML=list.map(s=>labelHTML(s,tpl,true)).join(""); // labelHTML now returns its own page wrapper (full or compact)
   renderBarcodes(pr); // draw real scannable Code128 bars into every placeholder, for every selected label
   closeModal();showToast(`${t("printDone")} — ${list.length} ${t("copies")}`);
   waitForBarcodesThenPrint(pr);
