@@ -624,7 +624,15 @@ const SEED_USERS=[];
 const DEFAULT_TPLS=[
   {id:"tpl_std",name:"Standard Label",
    fields:["batchId","sampleType","collectionDate","expiryDate","racks","staff","discardVerifier"],
-   showBiohazard:true,createdAt:new Date().toISOString()},
+   showBiohazard:true,paperSize:"a4",createdAt:new Date().toISOString()},
+];
+  const PAPER_SIZES=[
+  {id:"a4",       label:"A4 (210 × 297 mm)",           w:210,   h:297,   kind:"full"},
+  {id:"letter",   label:"Letter (216 × 279 mm)",        w:216,   h:279,   kind:"full"},
+  {id:"th_4x6",   label:"Thermal 4×6 in (102 × 152 mm)",w:101.6, h:152.4, kind:"full"},
+  {id:"th_58x40", label:"Thermal 58 × 40 mm",            w:58,    h:40,    kind:"compact"},
+  {id:"th_50x30", label:"Thermal 50 × 30 mm",            w:50,    h:30,    kind:"compact"},
+  {id:"th_40x30", label:"Thermal 40 × 30 mm",            w:40,    h:30,    kind:"compact"},
 ];
 
 /* ══════════════════════════════════════
@@ -1606,7 +1614,7 @@ function renderTemplates(){
   </div>`).join("");
 }
 let _etid=null;
-function openAddTpl(){_etid=null;showTplForm({id:"tpl_"+Date.now(),name:"",fields:[...ALL_FIELDS],showBiohazard:true,createdAt:new Date().toISOString()});}
+function openAddTpl(){_etid=null;showTplForm({id:"tpl_"+Date.now(),name:"",fields:[...ALL_FIELDS],showBiohazard:true,paperSize:"a4",createdAt:new Date().toISOString()});}
 function openEditTpl(id){const tp=tpls.find(x=>x.id===id);if(!tp)return;_etid=id;showTplForm(tp);}
 function showTplForm(tp){
   const cbs=ALL_FIELDS.map(f=>`<label class="field-checkbox-label"><input type="checkbox" id="tf-${f}" ${tp.fields.includes(f)?"checked":""}/>${esc(t(f)||f)}</label>`).join("");
@@ -1615,16 +1623,24 @@ function showTplForm(tp){
     <div class="form-field" style="grid-column:1/-1"><label class="form-label">Name</label><input class="form-input" id="tf-name" value="${esc(tp.name)}" placeholder="Standard Label"/></div>
   </div>
   <div class="form-field" style="margin:14px 0"><label class="form-label">${t("templateFields")}</label><div class="field-checkbox-grid">${cbs}</div></div>
-  <label class="field-checkbox-label" style="margin-bottom:16px"><input type="checkbox" id="tf-bio" ${tp.showBiohazard?"checked":""}/>${t("showBiohazard")}</label>
+ <label class="field-checkbox-label" style="margin-bottom:16px"><input type="checkbox" id="tf-bio" ${tp.showBiohazard?"checked":""}/>${t("showBiohazard")}</label>
+  <div class="form-field" style="margin-bottom:16px">
+    <label class="form-label">Paper Size</label>
+    <select class="form-select" id="tf-papersize">
+      ${PAPER_SIZES.map(p=>`<option value="${p.id}" ${((tp.paperSize||"a4")===p.id)?"selected":""}>${esc(p.label)}${p.kind==="compact"?" — compact layout":""}</option>`).join("")}
+    </select>
+    <div class="form-hint">Thermal sizes 58×40mm and smaller automatically switch to a compact layout (Batch ID + barcode + discard date only) — the full label design doesn't fit that small.</div>
+  </div>
   <div class="form-footer"><button class="btn-save" onclick="saveTpl()">${t("save")}</button><button class="btn-cancel" onclick="closeModal()">${t("cancel")}</button></div>`);
 }
 function saveTpl(){
   const name=document.getElementById("tf-name").value.trim()||"Template";
   const fields=ALL_FIELDS.filter(f=>document.getElementById("tf-"+f)?.checked);
   const showBiohazard=document.getElementById("tf-bio")?.checked;
+  const paperSize=document.getElementById("tf-papersize")?.value||"a4";
   const isNew=!_etid;
   const id=_etid||("tpl_"+Date.now());
-  const tp={id,name,fields,showBiohazard,createdAt:new Date().toISOString()};
+  const tp={id,name,fields,showBiohazard,paperSize,createdAt:new Date().toISOString()};
   tpls=isNew?[...tpls,tp]:tpls.map(x=>x.id===_etid?tp:x);
   // Goes through DB.saveTemplate now (was a direct localStorage.setItem before, which bypassed
   // the in-memory cache in database-layer.js AND never synced to Google Sheets).
