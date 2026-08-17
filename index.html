@@ -1557,7 +1557,7 @@ function openGroupPrint(gid){
         <label class="pbl-check-all"><input type="checkbox" id="pm-all" checked onchange="toggleAllPrint(this,${members.map(s=>`'${s.id}'`).join(",")})"/> ${t("selectAll")}</label>
         ${members.map(s=>`<label class="pbl-item"><input type="checkbox" class="pbl-cb" id="pbl-${s.id}" value="${s.id}" checked onchange="updateGroupPreview('${gid}')"/><span class="pbl-bid">${esc(s.batchId)}</span><span class="pbl-rack">Rack ${s.rackNumber||1}</span>${badge(sampleStatus(s),s)}</label>`).join("")}
       </div>
-      <div style="background:#F1F5F9;border:1px solid #E2E8F0;border-radius:6px;padding:8px 10px;font-size:11.5px;color:#64748B;margin:10px 0">💡 ${"1 large label per sheet, "+(PAPER_SIZES.find(p=>p.id===firstTpl?.paperSize)||PAPER_SIZES[0]).label}</div>
+   <div id="pm-papersize-hint" style="background:#F1F5F9;border:1px solid #E2E8F0;border-radius:6px;padding:8px 10px;font-size:11.5px;color:#64748B;margin:10px 0">💡 ${"1 large label per sheet, "+(PAPER_SIZES.find(p=>p.id===firstTpl?.paperSize)||PAPER_SIZES[0]).label}</div>
       <div style="display:flex;gap:8px"><button class="btn-save" onclick="doPrintGroup('${gid}')">🖨 ${t("printSelected")}</button><button class="btn-cancel" onclick="closeModal()">${t("cancel")}</button></div>
     </div>
     <div class="print-modal-right">
@@ -1572,6 +1572,8 @@ function updateGroupPreview(gid){
   const gmap=groupSamples(samples);const members=gmap.get(gid)||[];
   const firstChecked=members.find(s=>document.getElementById("pbl-"+s.id)?.checked)||members[0];
   const c=document.getElementById("gp-preview");if(c&&tpl&&firstChecked){c.innerHTML=labelHTML(firstChecked,tpl,false);renderBarcodes(c);}
+  const hint=document.getElementById("pm-papersize-hint");
+  if(hint&&tpl)hint.textContent="💡 1 large label per sheet, "+(PAPER_SIZES.find(p=>p.id===tpl.paperSize)||PAPER_SIZES[0]).label;
 }
 function doPrintGroup(gid){
   const tplId=document.getElementById("pm-tpl")?.value;const tpl=tpls.find(x=>x.id===tplId)||tpls[0];
