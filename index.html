@@ -817,13 +817,12 @@ function renderBarcodes(root){
 /** Injects a dynamic @page rule + CSS variables matching the chosen template's paper size,
  *  right before printing. @page size can't be set inline/via JS on the rule itself, so this
  *  swaps out a <style> tag's content instead — the standard workaround for print-size-per-job. */
-function applyPrintPageSize(widthMm,heightMm){
+function applyPrintPageSize(widthMm,heightMm,padCss){
   let styleTag=document.getElementById("dynamic-page-size");
   if(!styleTag){styleTag=document.createElement("style");styleTag.id="dynamic-page-size";document.head.appendChild(styleTag);}
   styleTag.textContent=`@page{size:${widthMm}mm ${heightMm}mm;margin:0}
-    :root{--pg-w:${widthMm}mm;--pg-h:${heightMm}mm}`;
+    :root{--pg-w:${widthMm}mm;--pg-h:${heightMm}mm;--pg-pad:${padCss||"30mm 25mm"}}`;
 }
-  
   
 function labelHTML(s,tpl,forPrint){
   const paper=PAPER_SIZES.find(p=>p.id===tpl.paperSize)||PAPER_SIZES[0];
@@ -1626,6 +1625,9 @@ function buildPrintAndFire(list,tpl){
   pr.innerHTML=list.map(s=>labelHTML(s,tpl,true)).join("");
   renderBarcodes(pr);
   fitCardsToPage(pr,paper.h);
+  closeModal();showToast(`${t("printDone")} — ${list.length} ${t("copies")}`);
+  waitForBarcodesThenPrint(pr);
+}
 /** Polls until every barcode placeholder inside `container` has finished rendering, then opens the print dialog. */
 function waitForBarcodesThenPrint(container,attempt){
   attempt=attempt||0;
