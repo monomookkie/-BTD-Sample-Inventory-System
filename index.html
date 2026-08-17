@@ -234,8 +234,9 @@ td{padding:10px 15px;vertical-align:middle;color:#334155}
 .toast-inner{display:flex;align-items:center;gap:9px;background:#FFFFFF;border:1px solid #A7F3D0;color:#059669;padding:11px 17px;border-radius:9px;font-size:15px;font-weight:600;box-shadow:0 8px 24px rgba(15,23,42,.12)}
 
 /* ══ A4 LABEL ══ */
-.a4-label{width:var(--pg-w,210mm);min-height:var(--pg-h,297mm);background:#fff;display:flex;align-items:center;justify-content:center;padding:var(--pg-pad,30mm 25mm)}
-.a4-card{width:100%;max-width:140mm;border:3px solid #CBD5E1;border-radius:6px;overflow:hidden;font-family:'Inter',Arial,sans-serif}
+.a4-label{width:var(--pg-w,210mm);height:var(--pg-h,297mm);overflow:hidden;page-break-after:always;page-break-inside:avoid;background:#fff;display:flex;align-items:center;justify-content:center;padding:var(--pg-pad,30mm 25mm)}
+.a4-label:last-child{page-break-after:auto}
+.a4-card{transform-origin:top center;width:100%;max-width:140mm;border:3px solid #CBD5E1;border-radius:6px;overflow:hidden;font-family:'Inter',Arial,sans-serif}
 .a4-cap{height:8mm;width:100%}
 .a4-inner{padding:8mm 12mm 10mm}
 /* Official BTD logo, centered at the very top of the label */
@@ -800,6 +801,17 @@ function renderBarcodes(root){
       });
       svg.dataset.rendered="1";
     }catch(e){console.warn("Barcode render failed for",value,e);}
+  });
+}
+  function fitCardsToPage(container,pageHeightMm){
+  const pageHeightPx=pageHeightMm*96/25.4;
+  container.querySelectorAll(".a4-label").forEach(page=>{
+    const card=page.querySelector(".a4-card");
+    if(!card)return;
+    const cardHeightPx=card.getBoundingClientRect().height;
+    if(cardHeightPx>pageHeightPx){
+      card.style.transform=`scale(${(pageHeightPx/cardHeightPx*0.98).toFixed(3)})`;
+    }
   });
 }
 /** Injects a dynamic @page rule + CSS variables matching the chosen template's paper size,
@@ -1609,13 +1621,11 @@ function doPrintSingle(id){
 }
 function buildPrintAndFire(list,tpl){
   const paper=PAPER_SIZES.find(p=>p.id===tpl.paperSize)||PAPER_SIZES[0];
-  applyPrintPageSize(paper.w,paper.h);
+  applyPrintPageSize(paper.w,paper.h,paper.pad);
   const pr=document.getElementById("print-root");
-  pr.innerHTML=list.map(s=>labelHTML(s,tpl,true)).join(""); // labelHTML now returns its own page wrapper (full or compact)
-  renderBarcodes(pr); // draw real scannable Code128 bars into every placeholder, for every selected label
-  closeModal();showToast(`${t("printDone")} — ${list.length} ${t("copies")}`);
-  waitForBarcodesThenPrint(pr);
-}
+  pr.innerHTML=list.map(s=>labelHTML(s,tpl,true)).join("");
+  renderBarcodes(pr);
+  fitCardsToPage(pr,paper.h);
 /** Polls until every barcode placeholder inside `container` has finished rendering, then opens the print dialog. */
 function waitForBarcodesThenPrint(container,attempt){
   attempt=attempt||0;
