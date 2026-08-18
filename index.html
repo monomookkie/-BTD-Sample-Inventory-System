@@ -236,7 +236,7 @@ td{padding:10px 15px;vertical-align:middle;color:#334155}
 /* ══ A4 LABEL ══ */
 .a4-label{width:var(--pg-w,210mm);height:var(--pg-h,297mm);overflow:hidden;page-break-after:always;page-break-inside:avoid;background:#fff;display:flex;align-items:center;justify-content:center;padding:var(--pg-pad,30mm 25mm)}
 .a4-label:last-child{page-break-after:auto}
-.a4-card{transform-origin:top center;width:100%;max-width:140mm;border:3px solid #CBD5E1;border-radius:6px;overflow:hidden;font-family:'Inter',Arial,sans-serif}
+.a4-card{width:100%;max-width:140mm;border:3px solid #CBD5E1;border-radius:6px;overflow:hidden;font-family:'Inter',Arial,sans-serif}
 .a4-cap{height:8mm;width:100%}
 .a4-inner{padding:8mm 12mm 10mm}
 /* Official BTD logo, centered at the very top of the label */
@@ -803,23 +803,20 @@ function renderBarcodes(root){
     }catch(e){console.warn("Barcode render failed for",value,e);}
   });
 }
- function fitCardsToPage(container,pageWidthMm,pageHeightMm,fill){
+function fitCardsToPage(container,pageWidthMm,pageHeightMm,fill){
   const pageWidthPx=pageWidthMm*96/25.4;
   const pageHeightPx=pageHeightMm*96/25.4;
   container.querySelectorAll(".a4-label").forEach(page=>{
     const card=page.querySelector(".a4-card");
     if(!card)return;
+    card.style.zoom="1"; // reset ก่อนวัด ไม่งั้นค่าจากรอบก่อนจะเจือปนการวัดครั้งนี้
     const rect=card.getBoundingClientRect();
     if(!rect.width||!rect.height)return;
     if(fill){
-      // Thermal labels: scale UP or DOWN so the card fills the label snugly either way,
-      // instead of only shrinking when it overflows — avoids the big blank margins.
       const scale=Math.min(pageWidthPx/rect.width,pageHeightPx/rect.height)*0.92;
-      card.style.transform=`scale(${scale.toFixed(3)})`;
+      card.style.zoom=scale.toFixed(3);
     } else if(rect.height>pageHeightPx){
-      // A4/Letter/A5: only shrink if it genuinely overflows — keep the original
-      // "poster on a full sheet" look otherwise.
-      card.style.transform=`scale(${(pageHeightPx/rect.height*0.98).toFixed(3)})`;
+      card.style.zoom=(pageHeightPx/rect.height*0.98).toFixed(3);
     }
   });
 }
