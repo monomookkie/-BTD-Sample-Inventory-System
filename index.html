@@ -1633,9 +1633,15 @@ function buildPrintAndFire(list,tpl){
   const pr=document.getElementById("print-root");
   pr.innerHTML=list.map(s=>labelHTML(s,tpl,true)).join("");
   renderBarcodes(pr);
-    fitCardsToPage(pr,paper.w,paper.h,paper.fill);
-  closeModal();showToast(`${t("printDone")} — ${list.length} ${t("copies")}`);
-  waitForBarcodesThenPrint(pr);
+  // รอ 2 เฟรมให้เบราว์เซอร์ layout รูปโลโก้/เนื้อหาให้เสร็จสมบูรณ์ก่อน ค่อยวัดขนาดการ์ดจริง
+  // (วัดเร็วเกินไปจะได้ความสูงที่ยังไม่รวมรูปภาพ ทำให้ scale ผิดพลาด เนื้อหาล้นแล้วโดนตัด)
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      fitCardsToPage(pr,paper.w,paper.h,paper.fill);
+      closeModal();showToast(`${t("printDone")} — ${list.length} ${t("copies")}`);
+      waitForBarcodesThenPrint(pr);
+    });
+  });
 }
 /** Polls until every barcode placeholder inside `container` has finished rendering, then opens the print dialog. */
 function waitForBarcodesThenPrint(container,attempt){
