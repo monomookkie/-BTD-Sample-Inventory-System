@@ -268,10 +268,10 @@ td{padding:10px 15px;vertical-align:middle;color:#334155}
 @media print{
   html,body{height:auto!important;overflow:visible!important}
   body>*{display:none!important}
-  #print-root{display:block!important;position:static!important;overflow:visible!important}
+     #print-root{display:block!important;position:static!important;overflow:visible!important;visibility:visible!important;left:0!important}
 }
 @page{size:A4;margin:0}
-#print-root{display:none}
+#print-root{position:fixed;left:-99999px;top:0;visibility:hidden}
 .print-label-page{width:var(--pg-w,210mm);height:var(--pg-h,297mm);overflow:hidden;page-break-after:always;page-break-inside:avoid}
 /* ══ COMPACT LABEL — small thermal stock (58×40mm and below) ══ */
 .lbl-compact-page{width:var(--pg-w);height:var(--pg-h);overflow:hidden;page-break-after:always;page-break-inside:avoid;display:flex;align-items:center;justify-content:center}
