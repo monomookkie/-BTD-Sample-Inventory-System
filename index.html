@@ -636,7 +636,7 @@ const DEFAULT_TPLS=[
   const PAPER_SIZES=[
   {id:"a4",       label:"A4 (210 × 297 mm)",           w:210,   h:297,   kind:"full"},
   {id:"letter",   label:"Letter (216 × 279 mm)",        w:216,   h:279,   kind:"full"},
-  {id:"th_4x6",   label:"Thermal 4×6 in (102 × 152 mm)",w:101.6, h:152.4, kind:"full"},
+  {id:"th_4x6",   label:"Thermal 4×6 in (102 × 152 mm)",w:101.6, h:152.4, kind:"full",    pad:"3mm",fill:true},
   {id:"th_58x40", label:"Thermal 58 × 40 mm",            w:58,    h:40,    kind:"compact"},
   {id:"th_50x30", label:"Thermal 50 × 30 mm",            w:50,    h:30,    kind:"compact"},
   {id:"th_40x30", label:"Thermal 40 × 30 mm",            w:40,    h:30,    kind:"compact"},
@@ -803,14 +803,23 @@ function renderBarcodes(root){
     }catch(e){console.warn("Barcode render failed for",value,e);}
   });
 }
-  function fitCardsToPage(container,pageHeightMm){
+ function fitCardsToPage(container,pageWidthMm,pageHeightMm,fill){
+  const pageWidthPx=pageWidthMm*96/25.4;
   const pageHeightPx=pageHeightMm*96/25.4;
   container.querySelectorAll(".a4-label").forEach(page=>{
     const card=page.querySelector(".a4-card");
     if(!card)return;
-    const cardHeightPx=card.getBoundingClientRect().height;
-    if(cardHeightPx>pageHeightPx){
-      card.style.transform=`scale(${(pageHeightPx/cardHeightPx*0.98).toFixed(3)})`;
+    const rect=card.getBoundingClientRect();
+    if(!rect.width||!rect.height)return;
+    if(fill){
+      // Thermal labels: scale UP or DOWN so the card fills the label snugly either way,
+      // instead of only shrinking when it overflows — avoids the big blank margins.
+      const scale=Math.min(pageWidthPx/rect.width,pageHeightPx/rect.height)*0.92;
+      card.style.transform=`scale(${scale.toFixed(3)})`;
+    } else if(rect.height>pageHeightPx){
+      // A4/Letter/A5: only shrink if it genuinely overflows — keep the original
+      // "poster on a full sheet" look otherwise.
+      card.style.transform=`scale(${(pageHeightPx/rect.height*0.98).toFixed(3)})`;
     }
   });
 }
@@ -1624,7 +1633,7 @@ function buildPrintAndFire(list,tpl){
   const pr=document.getElementById("print-root");
   pr.innerHTML=list.map(s=>labelHTML(s,tpl,true)).join("");
   renderBarcodes(pr);
-  fitCardsToPage(pr,paper.h);
+    fitCardsToPage(pr,paper.w,paper.h,paper.fill);
   closeModal();showToast(`${t("printDone")} — ${list.length} ${t("copies")}`);
   waitForBarcodesThenPrint(pr);
 }
