@@ -358,7 +358,10 @@ const DB = {
     if (!REMOTE_CONFIGURED) return null;
     return remoteAction("forgotPassword", { email });
   },
-
+ async changePassword(email, currentPassword, newPassword) {
+    if (!REMOTE_CONFIGURED) return null;
+    return remoteAction("changePassword", { email, currentPassword, newPassword });
+  },
   // ─── Logs (batch-creation history, for the Report page) ─────────────
 
   getLogs() { return _cache.logs; },
