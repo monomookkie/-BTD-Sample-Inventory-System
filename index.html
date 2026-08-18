@@ -445,6 +445,9 @@ td{padding:10px 15px;vertical-align:middle;color:#334155}
     </nav>
     <div class="sidebar-footer">
       <div class="user-card"><div class="user-avatar" id="sb-avatar">A</div><div style="flex:1;min-width:0"><div class="user-name" id="sb-uname">Admin</div><div class="user-role-label" id="sb-role">Administrator</div></div></div>
+           <div class="footer-row" style="gap:8px">
+        <button class="btn-secondary" id="change-pw-btn" onclick="openChangePassword()" style="flex:1">🔑 <span id="cpw-label">Change Password</span></button>
+      </div>
       <div class="footer-row">
         <button class="logout-btn" id="logout-btn" onclick="doLogout()">Sign Out</button>
       </div>
@@ -683,6 +686,9 @@ const T={
       resetPassword:"Reset Password",newPassword:"New Password",
       resetPasswordHint:"This sets the password directly — share it with the user securely.",
       passwordTooShort:"Password must be at least 6 characters",passwordResetDone:"Password reset",
+      changePassword:"Change Password",currentPassword:"Current Password",confirmNewPassword:"Confirm New Password",
+      passwordMismatch:"New password and confirmation don't match",
+      currentPasswordIncorrect:"Current password is incorrect",passwordChangeDone:"Password changed successfully",
   }
 };
 
@@ -2036,6 +2042,34 @@ function openResetPassword(id){
     <div class="form-hint">${t("resetPasswordHint")}</div>
   </div>
   <div class="form-footer"><button class="btn-save" onclick="saveResetPassword('${id}')">${t("resetPassword")}</button><button class="btn-cancel" onclick="closeModal()">${t("cancel")}</button></div>`);
+}
+  /** Self-service password change, available to every signed-in user from the sidebar —
+ *  unlike openResetPassword() above (admin overriding someone else's password, no
+ *  verification), this requires proving you know your CURRENT password first, checked
+ *  server-side in handleChangePassword_() since the hash never reaches the browser. */
+function openChangePassword(){
+  openModal(t("changePassword"),`
+  <div class="form-field"><label class="form-label">${t("currentPassword")}</label>
+    <input class="form-input" type="password" id="cp-current"/>
+  </div>
+  <div class="form-field"><label class="form-label">${t("newPassword")}</label>
+    <input class="form-input" type="password" id="cp-new"/>
+  </div>
+  <div class="form-field"><label class="form-label">${t("confirmNewPassword")}</label>
+    <input class="form-input" type="password" id="cp-confirm"/>
+  </div>
+  <div class="form-footer"><button class="btn-save" onclick="saveChangePassword()">${t("changePassword")}</button><button class="btn-cancel" onclick="closeModal()">${t("cancel")}</button></div>`);
+}
+async function saveChangePassword(){
+  const current=document.getElementById("cp-current")?.value||"";
+  const next=document.getElementById("cp-new")?.value||"";
+  const confirmPw=document.getElementById("cp-confirm")?.value||"";
+  if(next.length<6){showToast(t("passwordTooShort"));return;}
+  if(next!==confirmPw){showToast(t("passwordMismatch"));return;}
+  const result=await remoteAction("changePassword",{email:cu.email,currentPassword:current,newPassword:next});
+  if(!result){showToast("Network error — please try again");return;}
+  if(result.error){showToast(result.error==="Current password is incorrect"?t("currentPasswordIncorrect"):result.error);return;}
+  closeModal();showToast(t("passwordChangeDone"));
 }
 function saveResetPassword(id){
   const newPassword=(document.getElementById("rp-password")?.value||"").trim();
