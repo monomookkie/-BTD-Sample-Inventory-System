@@ -1765,9 +1765,12 @@ function renderReport(){
   if(!filteredLogs.length){tb.innerHTML=`<tr><td colspan="11" class="no-results">${t("noSamples")}</td></tr>`;return;}
   const sortedLogs=[...filteredLogs].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
   let html="";
-  sortedLogs.forEach(l=>{
+    sortedLogs.forEach(l=>{
     const members=samples.filter(s=>s.groupId===l.groupId).sort((a,b)=>(a.rackNumber||0)-(b.rackNumber||0));
     const discardedCount=members.filter(s=>s.discarded).length;
+    const liveStorage=members.length?(members[0].storageLocation||l.storageLocation):l.storageLocation;
+    const liveBox=members.length?(members[0].boxName||l.boxName):l.boxName;
+    const liveTubes=members.length?members.reduce((sum,s)=>sum+(Number(s.tubeCount)||0),0):l.tubeCount;
     const isOpen=expandedReportGroups.has(l.groupId);
     const groupStatusLabel=discardedCount===0?t("active"):(discardedCount===members.length?t("discarded"):`${discardedCount}/${members.length} ${t("discarded")}`);
     const creatorDisplayName=resolveActorName(l.staffName,l.staffEmail,l.staffId);
@@ -1778,9 +1781,9 @@ function renderReport(){
       <td>${esc(logTypeDisplay(l))}</td>
       <td style="color:#94A3B8;font-size:12px;max-width:160px;white-space:normal">${esc(l.typeDetail||"—")}</td>
       <td style="color:#1E293B;font-weight:600">${l.racks}</td>
-      <td style="color:#94A3B8;font-size:12px">${esc(l.storageLocation||"—")}</td>
-      <td style="color:#94A3B8;font-size:12px">${esc(l.boxName||"—")}</td>
-      <td style="color:#94A3B8;font-size:12px">${(l.tubeCount||l.tubeCount===0)?esc(String(l.tubeCount)):"—"}</td>
+      <td style="color:#94A3B8;font-size:12px">${esc(liveStorage||"—")}</td>
+      <td style="color:#94A3B8;font-size:12px">${esc(liveBox||"—")}</td>
+      <td style="color:#94A3B8;font-size:12px">${(liveTubes||liveTubes===0)?esc(String(liveTubes)):"—"}</td>d>
       <td style="color:#94A3B8">${esc(creatorDisplayName)}</td>
       <td style="color:#94A3B8;font-size:12px">${esc(groupStatusLabel)}</td>
     </tr>`;
