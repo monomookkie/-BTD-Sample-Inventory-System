@@ -1759,7 +1759,7 @@ function renderReport(){
   const selectedSubtype=document.getElementById("r-other-subtype")?.value||"all";
   document.getElementById("r-thead").innerHTML=["",t("reportDate"),t("reportBatch"),t("reportType"),t("typeDetail"),t("reportRacks"),t("reportStorage"),t("reportBox"),t("reportTubes"),t("reportUser"),t("status")].map(h=>`<th>${esc(h)}</th>`).join("");
   const tb=document.getElementById("r-tbody");
-  let filteredLogs=logs;
+  let filteredLogs=logs.filter(l=>!l.batchDeleted);
   if(selectedType!=="all")filteredLogs=filteredLogs.filter(l=>l.sampleType===selectedType);
   if(selectedType==="other"&&selectedSubtype!=="all")filteredLogs=filteredLogs.filter(l=>l.customTypeName===selectedSubtype);
   if(!filteredLogs.length){tb.innerHTML=`<tr><td colspan="11" class="no-results">${t("noSamples")}</td></tr>`;return;}
@@ -1846,7 +1846,7 @@ function toggleReportGroup(gid){
 function exportReport(format){
   const selectedType=document.getElementById("r-type")?.value||"all";
   const selectedSubtype=document.getElementById("r-other-subtype")?.value||"all";
-  let rows=logs;
+  let rows=logs.filter(l=>!l.batchDeleted);
   if(selectedType!=="all")rows=rows.filter(l=>l.sampleType===selectedType);
   if(selectedType==="other"&&selectedSubtype!=="all")rows=rows.filter(l=>l.customTypeName===selectedSubtype);
   rows=rows.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
@@ -1883,8 +1883,7 @@ async function exportReportWord(){
   const selectedSubtype=document.getElementById("r-other-subtype")?.value||"all";
   const actualFrom=document.getElementById("r-actual-from")?.value||"";
   const actualTo=document.getElementById("r-actual-to")?.value||"";
-
-  let rows=logs;
+  let rows=logs.filter(l=>!l.batchDeleted);
   if(selectedType!=="all")rows=rows.filter(l=>l.sampleType===selectedType);
   if(selectedType==="other"&&selectedSubtype!=="all")rows=rows.filter(l=>l.customTypeName===selectedSubtype);
   rows=rows.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
