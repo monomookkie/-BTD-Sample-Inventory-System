@@ -1166,15 +1166,15 @@ function renderSamples(){
   const fs=document.getElementById("s-status").value;
   const filtered=samples.filter(s=>{
     if(s.discarded)return false;
-    const mq=!q||s.batchId.toLowerCase().includes(q)||sName(s.staffId).toLowerCase().includes(q);
+    const mq=!q||s.batchId.toLowerCase().includes(q)||resolveActorName(s.staffName,s.staffEmail,s.staffId).toLowerCase().includes(q);
     const mt=ft==="all"||s.sampleType===ft;
     const ms=fs==="all"||sampleStatus(s)===fs;
     return mq&&mt&&ms;
   });
   const gmap=groupSamples(filtered);
-  document.getElementById("s-thead").innerHTML=["","Batch Group / ID",t("sampleType"),t("collectionDate"),t("expiryDate"),t("totalRacks"),t("staff"),t("status"),t("actions")].map(h=>`<th>${esc(h)}</th>`).join("");
+  document.getElementById("s-thead").innerHTML=["","Batch Group / ID",t("sampleType"),t("typeDetail"),t("collectionDate"),t("expiryDate"),t("totalRacks"),t("staff"),t("status"),t("actions")].map(h=>`<th>${esc(h)}</th>`).join("");
   const tb=document.getElementById("s-tbody");
-  if(!gmap.size){tb.innerHTML=`<tr><td colspan="9" class="no-results">${t("noSamples")}</td></tr>`;return;}
+  if(!gmap.size){tb.innerHTML=`<tr><td colspan="10" class="no-results">${t("noSamples")}</td></tr>`;return;}
   let html="";
   const sortedGroups=[...gmap.entries()].sort((a,b)=>new Date(b[1][0].createdAt)-new Date(a[1][0].createdAt));
   sortedGroups.forEach(([gid,members])=>{
@@ -1188,10 +1188,11 @@ function renderSamples(){
       <td style="width:32px"><span class="chevron${isOpen?" open":""}" id="chev-${gid}">▶</span></td>
       <td><div class="group-cell"><div class="tube-stripe" style="background:${st.color}"></div><div><div style="font-family:monospace;font-size:12.5px;font-weight:700;color:#334155">${esc(pfx)}-<span style="color:#475569">****</span></div><div style="font-size:11px;color:#475569;margin-top:1px">${t("batchGroup")}${(members[0].storageLocation||members[0].boxName||members[0].tubeCount||members[0].tubeCount===0)?` · ${[members[0].storageLocation,members[0].boxName,(members[0].tubeCount||members[0].tubeCount===0)?`${members[0].tubeCount} ${t("tubeCount")}`:null].filter(Boolean).map(esc).join(" · ")}`:""}</div></div><span class="group-count">×${members.length}</span></div></td>
       <td><span class="type-badge" style="background:${st.color}22;color:${st.color}">${esc(sampleTypeDisplay(members[0]))}</span></td>
+      <td style="color:#94A3B8;font-size:12px;max-width:160px;white-space:normal">${esc(members[0].typeDetail||"—")}</td>
       <td class="date-cell">${fmtDate(members[0].collectionDate)}</td>
       <td class="${dateClass}">${fmtDate(firstExpiry)}</td>
       <td style="color:#1E293B;font-weight:600">${members.length}</td>
-      <td style="color:#94A3B8;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(sName(members[0].staffId))}</td>
+      <td style="color:#94A3B8;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(resolveActorName(members[0].staffName,members[0].staffEmail,members[0].staffId))}</td>
       <td>${badge(gs,null)}</td>
       <td><div class="action-group" onclick="event.stopPropagation()"><button class="btn-secondary" onclick="openGroupPrint('${gid}')">🖨 ${t("print")}</button><button class="btn-danger" onclick="confirmDeleteBatch('${gid}')">🗑 ${t("deleteBatch")}</button></div></td>
     </tr>`;
@@ -1203,6 +1204,7 @@ function renderSamples(){
         <td></td>
         <td class="child-indent"><div style="display:flex;align-items:center;gap:6px"><span class="batch-id">${esc(s.batchId)}</span><span class="rack-num">R${s.rackNumber||idx+1}</span></div></td>
         <td></td>
+        <td style="color:#94A3B8;font-size:12px;max-width:160px;white-space:normal">${esc(s.typeDetail||"—")}</td>
         <td class="date-cell" style="font-size:12px">${fmtDate(s.collectionDate)}</td>
         <td class="${dc}" style="font-size:12px">${fmtDate(s.expiryDate)}</td>
         <td></td><td></td>
