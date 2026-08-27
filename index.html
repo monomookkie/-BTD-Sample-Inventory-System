@@ -1754,6 +1754,30 @@ function populateReportTypes(){
     orderedTypes.map(st=>`<option value="${st.id}">${esc(st.label)}</option>`).join("");
   if(orderedTypes.some(st=>st.id===prev))sel.value=prev;
 }
+/** ตัวกรอง Report แบบรวมศูนย์ — ใช้ร่วมกันทั้งตารางบนจอ, Export to Excel, Export to Word
+ *  เพื่อไม่ให้ผลลัพธ์ทั้ง 3 จุดไม่ตรงกันแบบที่เคยเจอ (ตารางไม่กรองตามช่วงวันที่ แต่ Word กรอง) */
+function getReportFilteredLogs(){
+  const selectedType=document.getElementById("r-type")?.value||"all";
+  const selectedSubtype=document.getElementById("r-other-subtype")?.value||"all";
+  const actualFrom=document.getElementById("r-actual-from")?.value||"";
+  const actualTo=document.getElementById("r-actual-to")?.value||"";
+  let rows=logs.filter(l=>!l.batchDeleted);
+  if(selectedType!=="all")rows=rows.filter(l=>l.sampleType===selectedType);
+  if(selectedType==="other"&&selectedSubtype!=="all")rows=rows.filter(l=>l.customTypeName===selectedSubtype);
+  if(actualFrom||actualTo){
+    rows=rows.filter(l=>{
+      const members=samples.filter(s=>s.groupId===l.groupId);
+      return members.some(s=>{
+        if(!s.discarded||!s.discardedAt)return false;
+        const d=s.discardedAt.slice(0,10);
+        if(actualFrom&&d<actualFrom)return false;
+        if(actualTo&&d>actualTo)return false;
+        return true;
+      });
+    });
+  }
+  return rows;
+}
 function renderReport(){
   populateReportTypes();
   populateReportOtherSubtypes();
@@ -1761,9 +1785,7 @@ function renderReport(){
   const selectedSubtype=document.getElementById("r-other-subtype")?.value||"all";
   document.getElementById("r-thead").innerHTML=["",t("reportDate"),t("reportBatch"),t("reportType"),t("typeDetail"),t("reportRacks"),t("reportStorage"),t("reportBox"),t("reportTubes"),t("reportUser"),t("status")].map(h=>`<th>${esc(h)}</th>`).join("");
   const tb=document.getElementById("r-tbody");
-  let filteredLogs=logs.filter(l=>!l.batchDeleted);
-  if(selectedType!=="all")filteredLogs=filteredLogs.filter(l=>l.sampleType===selectedType);
-  if(selectedType==="other"&&selectedSubtype!=="all")filteredLogs=filteredLogs.filter(l=>l.customTypeName===selectedSubtype);
+  let filteredLogs=getReportFilteredLogs();
   if(!filteredLogs.length){tb.innerHTML=`<tr><td colspan="11" class="no-results">${t("noSamples")}</td></tr>`;return;}
   const sortedLogs=[...filteredLogs].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
   let html="";
@@ -1851,9 +1873,7 @@ function toggleReportGroup(gid){
 function exportReport(format){
   const selectedType=document.getElementById("r-type")?.value||"all";
   const selectedSubtype=document.getElementById("r-other-subtype")?.value||"all";
-  let rows=logs.filter(l=>!l.batchDeleted);
-  if(selectedType!=="all")rows=rows.filter(l=>l.sampleType===selectedType);
-  if(selectedType==="other"&&selectedSubtype!=="all")rows=rows.filter(l=>l.customTypeName===selectedSubtype);
+  let rows=getReportFilteredLogs();
   rows=rows.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
   if(!rows.length){showToast("No data to export");return;}
   const fileTag=selectedType==="all"?"all":(selectedType==="other"&&selectedSubtype!=="all"?"other_"+selectedSubtype.replace(/[^\w-]+/g,"_"):selectedType);
@@ -1884,13 +1904,10 @@ function exportReport(format){
 }                                                                  
 
 async function exportReportWord(){
- const selectedType=document.getElementById("r-type")?.value||"all";
+  const selectedType=document.getElementById("r-type")?.value||"all";
   const selectedSubtype=document.getElementById("r-other-subtype")?.value||"all";
-  const actualFrom=document.getElementById("r-actual-from")?.value||"";
-  const actualTo=document.getElementById("r-actual-to")?.value||"";
-  let rows=logs.filter(l=>!l.batchDeleted);
-  if(selectedType!=="all")rows=rows.filter(l=>l.sampleType===selectedType);
-  if(selectedType==="other"&&selectedSubtype!=="all")rows=rows.filter(l=>l.customTypeName===selectedSubtype);
+
+  let rows=getReportFilteredLogs();
   rows=rows.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
   const flatRows=[];
   rows.forEach(l=>{
@@ -1912,16 +1929,7 @@ async function exportReportWord(){
     }
   });
 
-  let finalRows=flatRows;
-  if(actualFrom||actualTo){
-    finalRows=finalRows.filter(r=>{
-      if(!r.actual)return false;
-      const d=r.actual.slice(0,10);
-      if(actualFrom&&d<actualFrom)return false;
-      if(actualTo&&d>actualTo)return false;
-      return true;
-    });
-  }
+  const finalRows=flatRows; // กรองครบแล้วตั้งแต่ getReportFilteredLogs() ไม่ต้องกรองซ้ำอีกชั้น
   if(!finalRows.length){showToast("No data to export");return;}
   if(typeof JSZip==="undefined"){showToast("JSZip library not loaded");return;}
 
