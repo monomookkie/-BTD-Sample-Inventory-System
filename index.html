@@ -536,12 +536,14 @@ td{padding:10px 15px;vertical-align:middle;color:#334155}
           <select class="filter-select" id="r-other-subtype" onchange="renderReport()" style="min-width:220px;display:none">
             <option value="all">All (Other)</option>
           </select>
-          <label style="font-size:12px;color:#64748B;display:flex;align-items:center;gap:6px">
+            <label style="font-size:12px;color:#64748B;display:flex;align-items:center;gap:6px">
             Discard Date (Actual):
             <input type="date" class="form-input" id="r-actual-from" style="padding:6px 8px;font-size:13px"/>
             <span>–</span>
             <input type="date" class="form-input" id="r-actual-to" style="padding:6px 8px;font-size:13px"/>
           </label>
+          <button class="btn-ghost" onclick="renderReport()">🔍 Search</button>
+          <button class="btn-ghost" onclick="clearReportFilters()">🧹 Clear</button>
           <div style="flex:1"></div>
           <button class="btn-ghost" onclick="exportReport('excel')">📗 <span id="btn-export-excel">Export to Excel</span></button>
           <button class="btn-ghost" onclick="exportReportWord()">📄 <span id="btn-export-word">Export to Word</span></button>
@@ -1848,7 +1850,14 @@ function renderReport(){
   });
   tb.innerHTML=html;
 }
-
+/** รีเซ็ตตัวกรองทั้งหมดในหน้า Report กลับเป็นค่าเริ่มต้น แล้ว render ใหม่ทันที */
+function clearReportFilters(){
+  const typeSel=document.getElementById("r-type");if(typeSel)typeSel.value="all";
+  const subSel=document.getElementById("r-other-subtype");if(subSel){subSel.value="all";subSel.style.display="none";}
+  const from=document.getElementById("r-actual-from");if(from)from.value="";
+  const to=document.getElementById("r-actual-to");if(to)to.value="";
+  renderReport();
+}
 function populateReportOtherSubtypes(){
   const sel=document.getElementById("r-other-subtype");
   if(!sel)return;
