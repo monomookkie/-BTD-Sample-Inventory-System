@@ -380,16 +380,18 @@ td{padding:10px 15px;vertical-align:middle;color:#334155}
         <div id="setup-err" class="auth-error" style="display:none"><span>⚠</span><span id="setup-err-msg"></span></div>
         <button class="auth-btn" onclick="doFirstAdminSetup()">Create Admin Account</button>
       </div>
-      <!-- LOGIN PANEL -->
+     <!-- LOGIN PANEL -->
       <div id="panel-login">
         <div class="auth-tabs">
           <div class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Sign In</div>
           <div class="auth-tab" id="tab-signup" onclick="switchAuthTab('signup')">Sign Up</div>
         </div>
-        <div class="auth-field"><label class="form-label" id="lbl-login-email">EMAIL</label><input id="login-email" class="form-input" placeholder="name@redcross.or.th"/></div>
-        <div class="auth-field"><label class="form-label" id="lbl-login-pw">PASSWORD</label><input id="login-pw" class="form-input" type="password"/></div>
-        <div id="login-err" class="auth-error" style="display:none"><span>⚠</span><span id="login-err-msg"></span></div>
-        <button class="auth-btn" onclick="doLogin()">Sign In</button>
+        <form onsubmit="event.preventDefault();doLogin()">
+          <div class="auth-field"><label class="form-label" id="lbl-login-email">EMAIL</label><input id="login-email" class="form-input" placeholder="name@redcross.or.th"/></div>
+          <div class="auth-field"><label class="form-label" id="lbl-login-pw">PASSWORD</label><input id="login-pw" class="form-input" type="password"/></div>
+          <div id="login-err" class="auth-error" style="display:none"><span>⚠</span><span id="login-err-msg"></span></div>
+          <button class="auth-btn" type="submit">Sign In</button>
+        </form>
         <div class="auth-switch"><span class="auth-link" onclick="switchAuthTab('forgot')">Forgot password?</span></div>
       </div>
       <!-- SIGNUP PANEL -->
@@ -398,21 +400,25 @@ td{padding:10px 15px;vertical-align:middle;color:#334155}
           <div class="auth-tab" onclick="switchAuthTab('login')">Sign In</div>
           <div class="auth-tab active" id="tab-signup2">Sign Up</div>
         </div>
-        <div class="auth-field"><label class="form-label">FULL NAME</label><input id="su-name" class="form-input" placeholder="Somchai A."/></div>
-        <div class="auth-field"><label class="form-label">EMAIL</label><input id="su-email" class="form-input" placeholder="name@redcross.or.th"/><div class="auth-hint">📧 Must end with @redcross.or.th</div></div>
-        <div class="auth-field"><label class="form-label">PASSWORD</label><input id="su-pw" class="form-input" type="password"/></div>
-        <div id="su-err" class="auth-error" style="display:none"><span>⚠</span><span id="su-err-msg"></span></div>
-        <div id="su-ok" class="auth-success" style="display:none"><span>✓</span><span id="su-ok-msg"></span></div>
-        <button class="auth-btn" onclick="doSignup()">Create Account</button>
+        <form onsubmit="event.preventDefault();doSignup()">
+          <div class="auth-field"><label class="form-label">FULL NAME</label><input id="su-name" class="form-input" placeholder="Somchai A."/></div>
+          <div class="auth-field"><label class="form-label">EMAIL</label><input id="su-email" class="form-input" placeholder="name@redcross.or.th"/><div class="auth-hint">📧 Must end with @redcross.or.th</div></div>
+          <div class="auth-field"><label class="form-label">PASSWORD</label><input id="su-pw" class="form-input" type="password"/></div>
+          <div id="su-err" class="auth-error" style="display:none"><span>⚠</span><span id="su-err-msg"></span></div>
+          <div id="su-ok" class="auth-success" style="display:none"><span>✓</span><span id="su-ok-msg"></span></div>
+          <button class="auth-btn" type="submit">Create Account</button>
+        </form>
       </div>
       <!-- FORGOT PASSWORD PANEL -->
       <div id="panel-forgot" style="display:none">
         <div style="font-size:14.5px;font-weight:700;color:#0F172A;margin-bottom:4px">Reset Password</div>
         <div style="font-size:12.5px;color:#64748B;margin-bottom:16px">Enter your registered email — we'll generate a new password and email it to you.</div>
-        <div class="auth-field"><label class="form-label">EMAIL</label><input id="fp-email" class="form-input" placeholder="name@redcross.or.th"/></div>
-        <div id="fp-err" class="auth-error" style="display:none"><span>⚠</span><span id="fp-err-msg"></span></div>
-        <div id="fp-ok" class="auth-success" style="display:none"><span>✓</span><span id="fp-ok-msg"></span></div>
-        <button class="auth-btn" onclick="doForgotPassword()">Send New Password</button>
+        <form onsubmit="event.preventDefault();doForgotPassword()">
+          <div class="auth-field"><label class="form-label">EMAIL</label><input id="fp-email" class="form-input" placeholder="name@redcross.or.th"/></div>
+          <div id="fp-err" class="auth-error" style="display:none"><span>⚠</span><span id="fp-err-msg"></span></div>
+          <div id="fp-ok" class="auth-success" style="display:none"><span>✓</span><span id="fp-ok-msg"></span></div>
+          <button class="auth-btn" type="submit">Send New Password</button>
+        </form>
         <div class="auth-switch"><span class="auth-link" onclick="switchAuthTab('login')">← Back to Sign In</span></div>
       </div>
       <!-- NO-ADMIN RECOVERY PANEL — shown when accounts exist but none of them is an admin
