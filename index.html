@@ -1932,13 +1932,14 @@ async function exportReportWord(){
   rows.forEach(l=>{
     const members=samples.filter(s=>s.groupId===l.groupId).sort((a,b)=>(a.rackNumber||0)-(b.rackNumber||0));
     const creatorName=resolveActorName(l.staffName,l.staffEmail,l.staffId);
+    const rowDate=l.collectionDate||l.createdAt;
     if(!members.length){
-      flatRows.push({createdAt:l.createdAt,batchId:l.batchPrefix+"-*",rack:"-",type:logTypeDisplay(l),typeDetail:l.typeDetail||"-",storageLocation:l.storageLocation||"-",boxName:l.boxName||"-",tubeCount:(l.tubeCount||l.tubeCount===0)?l.tubeCount:"-",staff:creatorName,discardedBy:"-",comment:"-",theory:"-",actual:null,actualDisplay:"-",status:"-"});
+      flatRows.push({createdAt:rowDate,batchId:l.batchPrefix+"-*",rack:"-",type:logTypeDisplay(l),typeDetail:l.typeDetail||"-",storageLocation:l.storageLocation||"-",boxName:l.boxName||"-",tubeCount:(l.tubeCount||l.tubeCount===0)?l.tubeCount:"-",staff:creatorName,discardedBy:"-",comment:"-",theory:"-",actual:null,actualDisplay:"-",status:"-"});
     } else {
       members.forEach(s=>{
         const discardedByName=s.discarded?resolveActorName(s.discardedByName,s.discardedByEmail,null):"";
         flatRows.push({
-          createdAt:l.createdAt,batchId:s.batchId,rack:s.rackNumber||1,type:sampleTypeDisplay(s),typeDetail:s.typeDetail||"-",
+          createdAt:rowDate,batchId:s.batchId,rack:s.rackNumber||1,type:sampleTypeDisplay(s),typeDetail:s.typeDetail||"-",
           storageLocation:s.storageLocation||"-",boxName:s.boxName||"-",tubeCount:(s.tubeCount||s.tubeCount===0)?s.tubeCount:"-",
           staff:creatorName,discardedBy:s.discarded?(discardedByName||"-"):"-",comment:s.discardComment||"-",
           theory:fmtDate(s.expiryDate),actual:s.discarded?s.discardedAt:null,
