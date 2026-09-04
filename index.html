@@ -1367,7 +1367,7 @@ function saveCreateBatch(){
   const creatorName=cu.name,creatorEmail=cu.email;
   const newSamples=ids.map((bid,i)=>({id:"s_"+Date.now()+"_"+i,groupId:gid,batchId:bid,rackNumber:i+1,sampleType:type,customTypeName,typeDetail,collectionDate:col,expiryDate:exp,racks:rack,retentionDays,storageLocation,boxName,tubeCount,staffId:cu.id,staffName:creatorName,staffEmail:creatorEmail,discarded:false,createdAt:now}));
   samples=[...newSamples,...samples];sl(SK.s,samples);
-  logs=[{id:"log_"+Date.now(),groupId:gid,batchPrefix:ids[0].replace(/-\d{4}$/,""),sampleType:type,customTypeName,typeDetail,racks:rack,storageLocation,boxName,tubeCount,staffId:cu.id,staffName:creatorName,staffEmail:creatorEmail,createdAt:now},...logs];
+    logs=[{id:"log_"+Date.now(),groupId:gid,batchPrefix:ids[0].replace(/-\d{4}$/,""),sampleType:type,customTypeName,typeDetail,racks:rack,storageLocation,boxName,tubeCount,staffId:cu.id,staffName:creatorName,staffEmail:creatorEmail,createdAt:now,collectionDate:col},...logs];
   sl(SK.logs,logs);
   sendToSheets("addSampleBatch",{groupId:gid,batchIds:ids,sampleType:type,customTypeName,typeDetail,collectionDate:col,expiryDate:exp,racks:rack,retentionDays,storageLocation,boxName,tubeCount,staffEmail:creatorEmail,staffName:creatorName,createdAt:now});
   expandedGroups.add(gid);
@@ -1800,15 +1800,18 @@ function renderReport(){
     sortedLogs.forEach(l=>{
     const members=samples.filter(s=>s.groupId===l.groupId).sort((a,b)=>(a.rackNumber||0)-(b.rackNumber||0));
     const discardedCount=members.filter(s=>s.discarded).length;
-    const liveStorage=members.length?(members[0].storageLocation||l.storageLocation):l.storageLocation;
+     const liveStorage=members.length?(members[0].storageLocation||l.storageLocation):l.storageLocation;
     const liveBox=members.length?(members[0].boxName||l.boxName):l.boxName;
     const liveTubes=members.length?members.reduce((sum,s)=>sum+(Number(s.tubeCount)||0),0):l.tubeCount;
+    // อ่าน collectionDate ที่บันทึกไว้ใน Logs โดยตรง (ไม่คำนวณสดจาก samples อีกต่อไป)
+    // fallback ไปที่ createdAt เฉพาะ Log เก่าที่ยังไม่ได้ backfill เท่านั้น
+    const liveCollectionDate=l.collectionDate||l.createdAt;
     const isOpen=expandedReportGroups.has(l.groupId);
     const groupStatusLabel=discardedCount===0?t("active"):(discardedCount===members.length?t("discarded"):`${discardedCount}/${members.length} ${t("discarded")}`);
     const creatorDisplayName=resolveActorName(l.staffName,l.staffEmail,l.staffId);
     html+=`<tr class="group-row" onclick="toggleReportGroup('${l.groupId}')">
       <td style="width:32px"><span class="chevron${isOpen?" open":""}" id="rchev-${l.groupId}">▶</span></td>
-      <td class="date-cell">${fmtDateTime(l.createdAt)}</td>
+      <td class="date-cell">${fmtDate(liveCollectionDate)}</td>
       <td><span class="batch-id">${esc(l.batchPrefix)}-*</span></td>
       <td>${esc(logTypeDisplay(l))}</td>
       <td style="color:#94A3B8;font-size:12px;max-width:160px;white-space:normal">${esc(l.typeDetail||"—")}</td>
@@ -1896,13 +1899,14 @@ function exportReport(format){
   rows.forEach(l=>{
     const members=samples.filter(s=>s.groupId===l.groupId).sort((a,b)=>(a.rackNumber||0)-(b.rackNumber||0));
     const creatorName=resolveActorName(l.staffName,l.staffEmail,l.staffId);
+    const rowDate=l.collectionDate||l.createdAt;
     if(!members.length){
-      flatRows.push({createdAt:l.createdAt,batchId:l.batchPrefix+"-*",rack:"-",type:logTypeDisplay(l),sampleTypeId:l.sampleType,typeDetail:l.typeDetail||"-",storageLocation:l.storageLocation||"-",boxName:l.boxName||"-",tubeCount:(l.tubeCount||l.tubeCount===0)?l.tubeCount:"-",staff:creatorName,discardedBy:"-",comment:"-",theory:"-",actual:"-",status:"-"});
+      flatRows.push({createdAt:rowDate,batchId:l.batchPrefix+"-*",rack:"-",type:logTypeDisplay(l),typeDetail:l.typeDetail||"-",storageLocation:l.storageLocation||"-",boxName:l.boxName||"-",tubeCount:(l.tubeCount||l.tubeCount===0)?l.tubeCount:"-",staff:creatorName,discardedBy:"-",comment:"-",theory:"-",actual:null,actualDisplay:"-",status:"-"});
     } else {
       members.forEach(s=>{
         const discardedByName=s.discarded?resolveActorName(s.discardedByName,s.discardedByEmail,null):"";
         flatRows.push({
-          createdAt:l.createdAt,batchId:s.batchId,rack:s.rackNumber||1,type:sampleTypeDisplay(s),sampleTypeId:s.sampleType,typeDetail:s.typeDetail||"-",
+          createdAt:rowDate,batchId:s.batchId,rack:s.rackNumber||1,type:sampleTypeDisplay(s),typeDetail:s.typeDetail||"-",
           storageLocation:s.storageLocation||"-",boxName:s.boxName||"-",tubeCount:(s.tubeCount||s.tubeCount===0)?s.tubeCount:"-",
           staff:creatorName,
           discardedBy:s.discarded?(discardedByName||"-"):"-",
@@ -1914,7 +1918,7 @@ function exportReport(format){
   });
   const csvField=v=>`"${String(v).replace(/"/g,'""')}"`;
   let csv="\uFEFFDate Created,Batch ID,Rack,Type,Detail,Storage Location,Box,Tube Count,Created By,Discarded By,Comment,Discard Date (Scheduled),Discard Date (Actual),Status\n";
-  flatRows.forEach(r=>{csv+=`${csvField(fmtDateTime(r.createdAt))},${csvField(r.batchId)},${r.rack},${csvField(r.type)},${csvField(r.typeDetail)},${csvField(r.storageLocation)},${csvField(r.boxName)},${r.tubeCount},${csvField(r.staff)},${csvField(r.discardedBy)},${csvField(r.comment)},${csvField(r.theory)},${csvField(r.actual)},${csvField(r.status)}\n`;});
+  flatRows.forEach(r=>{csv+=`${csvField(fmtDate(r.createdAt))},${csvField(r.batchId)},${r.rack},${csvField(r.type)},${csvField(r.typeDetail)},${csvField(r.storageLocation)},${csvField(r.boxName)},${r.tubeCount},${csvField(r.staff)},${csvField(r.discardedBy)},${csvField(r.comment)},${csvField(r.theory)},${csvField(r.actual)},${csvField(r.status)}\n`;});
   downloadFile(csv,`sample_batch_report_${fileTag}.csv`,"text/csv;charset=utf-8");
 }                                                                  
 
@@ -1961,7 +1965,7 @@ async function exportReportWord(){
   const filledRows=finalRows.map(r=>{
     let row=rowTpl;
     const vals={
-      DATE_CREATED:fmtDateTime(r.createdAt),BATCH_ID:r.batchId,RACK:String(r.rack),TYPE:r.type,
+      DATE_CREATED:fmtDate(r.createdAt),BATCH_ID:r.batchId,RACK:String(r.rack),TYPE:r.type,
       DETAIL:r.typeDetail==="-"?"":r.typeDetail,STORAGE:r.storageLocation==="-"?"":r.storageLocation,
       BOX:r.boxName==="-"?"":r.boxName,TUBES:String(r.tubeCount),CREATED_BY:r.staff,
       DISCARDED_BY:r.discardedBy==="-"?"":r.discardedBy,COMMENT:r.comment==="-"?"":r.comment,
