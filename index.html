@@ -1152,7 +1152,11 @@ function renderDash(){
     return`<div class="type-row"><div class="type-row-header"><span style="color:#64748B;font-size:14px">${st.label}</span><span style="color:${st.color};font-weight:700;font-size:14px">${c} ${c===1?"rack":"racks"}</span></div><div class="type-bar-bg"><div class="type-bar-fill" style="width:${(c/tot*100).toFixed(1)}%;background:${st.color}"></div></div></div>`;
   }).join("");
   document.getElementById("dt-recent").textContent=t("recentSamples");
-  const recentGroups=[...gmap.entries()].sort((a,b)=>Math.max(...b[1].map(s=>new Date(s.createdAt)))-Math.max(...a[1].map(s=>new Date(s.createdAt)))).slice(0,6);
+    const recentGroups=[...gmap.entries()].sort((a,b)=>{
+    const bc=Math.max(...b[1].map(s=>new Date(s.collectionDate||s.createdAt)));
+    const ac=Math.max(...a[1].map(s=>new Date(s.collectionDate||s.createdAt)));
+    return bc!==ac?bc-ac:Math.max(...b[1].map(s=>new Date(s.createdAt)))-Math.max(...a[1].map(s=>new Date(s.createdAt)));
+  }).slice(0,6);
   document.getElementById("recent-list").innerHTML=recentGroups.length?recentGroups.map(([gid,members])=>{
     const st=TYPES.find(x=>x.id===members[0].sampleType);const gs=groupStatus(members);
     const createdAt=members[0].createdAt;
@@ -1184,7 +1188,10 @@ function renderSamples(){
   const tb=document.getElementById("s-tbody");
   if(!gmap.size){tb.innerHTML=`<tr><td colspan="10" class="no-results">${t("noSamples")}</td></tr>`;return;}
   let html="";
-  const sortedGroups=[...gmap.entries()].sort((a,b)=>new Date(b[1][0].createdAt)-new Date(a[1][0].createdAt));
+     const sortedGroups=[...gmap.entries()].sort((a,b)=>{
+      const cd=new Date(b[1][0].collectionDate||b[1][0].createdAt)-new Date(a[1][0].collectionDate||a[1][0].createdAt);
+      return cd!==0?cd:new Date(b[1][0].createdAt)-new Date(a[1][0].createdAt);
+    });
   sortedGroups.forEach(([gid,members])=>{
     const st=TYPES.find(x=>x.id===members[0].sampleType)||TYPES[0];
     const gs=groupStatus(members);const isOpen=expandedGroups.has(gid);
@@ -1464,10 +1471,18 @@ function renderDiscardable(){
   const q=(document.getElementById("d-search").value||"").toLowerCase();
   const selectedType=document.getElementById("d-type")?.value||"all";
   const matchesType=s=>selectedType==="all"||s.sampleType===selectedType;
-  const eligible=samples.filter(s=>!s.discarded&&s.batchId.toLowerCase().includes(q)&&matchesType(s));
+   const eligible=samples.filter(s=>!s.discarded&&s.batchId.toLowerCase().includes(q)&&matchesType(s))
+    .sort((a,b)=>{
+      const cd=new Date(b.collectionDate||b.createdAt)-new Date(a.collectionDate||a.createdAt);
+      return cd!==0?cd:new Date(b.createdAt)-new Date(a.createdAt);
+    });
   // only show discards from the last 2 days here — older ones still exist in `samples`,
   // they just no longer clutter this page (visible instead via Report/Export)
-  const discardedList=samples.filter(s=>s.discarded&&!isPastRetention(s)&&s.batchId.toLowerCase().includes(q)&&matchesType(s));
+    const discardedList=samples.filter(s=>s.discarded&&!isPastRetention(s)&&s.batchId.toLowerCase().includes(q)&&matchesType(s))
+    .sort((a,b)=>{
+      const cd=new Date(b.collectionDate||b.createdAt)-new Date(a.collectionDate||a.createdAt);
+      return cd!==0?cd:new Date(b.createdAt)-new Date(a.createdAt);
+    });
 
   // Alert banner on this page itself — counts ALL warning/expired samples system-wide
   // (not affected by the search/type filters above), same numbers as the header pill.
@@ -1795,7 +1810,10 @@ function renderReport(){
   const tb=document.getElementById("r-tbody");
   let filteredLogs=getReportFilteredLogs();
   if(!filteredLogs.length){tb.innerHTML=`<tr><td colspan="11" class="no-results">${t("noSamples")}</td></tr>`;return;}
-  const sortedLogs=[...filteredLogs].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  const sortedLogs=[...filteredLogs].sort((a,b)=>{
+    const cd=new Date(b.collectionDate||b.createdAt)-new Date(a.collectionDate||a.createdAt);
+    return cd!==0?cd:new Date(b.createdAt)-new Date(a.createdAt);
+  });
   let html="";
     sortedLogs.forEach(l=>{
     const members=samples.filter(s=>s.groupId===l.groupId).sort((a,b)=>(a.rackNumber||0)-(b.rackNumber||0));
@@ -1892,7 +1910,10 @@ function exportReport(format){
   const selectedType=document.getElementById("r-type")?.value||"all";
   const selectedSubtype=document.getElementById("r-other-subtype")?.value||"all";
   let rows=getReportFilteredLogs();
-  rows=rows.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+    rows=rows.sort((a,b)=>{
+    const cd=new Date(b.collectionDate||b.createdAt)-new Date(a.collectionDate||a.createdAt);
+    return cd!==0?cd:new Date(b.createdAt)-new Date(a.createdAt);
+  });
   if(!rows.length){showToast("No data to export");return;}
   const fileTag=selectedType==="all"?"all":(selectedType==="other"&&selectedSubtype!=="all"?"other_"+selectedSubtype.replace(/[^\w-]+/g,"_"):selectedType);
   const flatRows=[];
@@ -1927,7 +1948,10 @@ async function exportReportWord(){
   const selectedSubtype=document.getElementById("r-other-subtype")?.value||"all";
 
   let rows=getReportFilteredLogs();
-  rows=rows.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+    rows=rows.sort((a,b)=>{
+    const cd=new Date(b.collectionDate||b.createdAt)-new Date(a.collectionDate||a.createdAt);
+    return cd!==0?cd:new Date(b.createdAt)-new Date(a.createdAt);
+  });
   const flatRows=[];
   rows.forEach(l=>{
     const members=samples.filter(s=>s.groupId===l.groupId).sort((a,b)=>(a.rackNumber||0)-(b.rackNumber||0));
