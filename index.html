@@ -873,7 +873,7 @@ function labelHTML(s,tpl,forPrint){
       <div class="a4-fields">
         ${f.includes("collectionDate")?`<div class="a4-field-row"><span class="a4-field-key">Collection date :</span><span class="a4-field-val">${fmtDate(s.collectionDate)}</span></div>`:""}
         ${f.includes("expiryDate")?`<div class="a4-field-row"><span class="a4-field-key">Discard date :</span><span class="a4-field-val ${expClass}">${fmtDate(s.expiryDate)}</span></div>`:""}
-        ${f.includes("staff")?`<div class="a4-field-row"><span class="a4-field-key">By :</span><span class="a4-field-val">${esc(sName(s.staffId))}</span></div>`:""}
+        ${f.includes("staff")?`<div class="a4-field-row"><span class="a4-field-key">By :</span><span class="a4-field-val">${esc(resolveActorName(s.staffName,s.staffEmail,s.staffId))}</span></div>`:""}
         ${f.includes("racks")?`<div class="a4-field-row"><span class="a4-field-key">Rack No. :</span><span class="a4-field-val">${s.rackNumber||1}/${s.racks||1}</span></div>`:""}
         ${f.includes("storageLocation")&&s.storageLocation?`<div class="a4-field-row"><span class="a4-field-key">Storage :</span><span class="a4-field-val">${esc(s.storageLocation)}</span></div>`:""}
         ${f.includes("boxName")&&s.boxName?`<div class="a4-field-row"><span class="a4-field-key">Box :</span><span class="a4-field-val">${esc(s.boxName)}</span></div>`:""}
